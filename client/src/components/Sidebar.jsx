@@ -4,6 +4,7 @@ import { LayoutDashboard, History, Settings, LogOut, Users, Leaf } from 'lucide-
 
 const Sidebar = () => {
     const location = useLocation();
+    const [isOpen, setIsOpen] = React.useState(false);
 
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -30,121 +31,131 @@ const Sidebar = () => {
     };
 
     return (
-        <div className="gg-sidebar" style={{
-            width: '280px',
-            height: '100vh',
-            position: 'fixed',
-            left: 0,
-            top: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 1000,
-            boxShadow: '4px 0 24px rgba(0,0,0,0.2)'
-        }}>
-            {/* Logo Section */}
-            <div style={{ padding: '32px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-                    <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '10px',
-                        background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 4px 12px rgba(5,150,105,0.4)'
-                    }}>
-                        <Leaf size={20} color="white" />
-                    </div>
-                    <div>
-                        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, lineHeight: 1 }}>
-                            <span style={{ color: 'white' }}>Green</span>
-                            <span style={{ color: 'var(--color-primary)' }}>Guard</span>
-                        </h1>
-                        <p style={{ margin: 0, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.5, marginTop: '4px' }}>Forest Monitor</p>
-                    </div>
-                </Link>
-            </div>
+        <>
+            {/* Mobile Hamburger Button */}
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="fixed top-4 right-4 z-[1002] lg:hidden p-2 bg-green-600 text-white rounded-lg shadow-lg"
+            >
+                {isOpen ? <LogOut size={24} className="rotate-180" /> : <LayoutDashboard size={24} />}
+            </button>
 
-            {/* Navigation */}
-            <nav style={{ flex: 1, padding: '24px 0', overflowY: 'auto' }}>
-                <p style={{
-                    padding: '0 24px',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    color: '#64748b',
-                    marginBottom: '16px'
-                }}>Menu</p>
-                {menuItems.map((item) => {
-                    const isActive = location.pathname === item.path;
-                    return (
-                        <Link
-                            key={item.path}
-                            to={item.path}
-                            className={`gg-nav-item ${isActive ? 'active' : ''}`}
-                            style={{ textDecoration: 'none' }}
-                        >
-                            <item.icon size={20} style={{ opacity: isActive ? 1 : 0.7 }} />
-                            <span>{item.label}</span>
-                        </Link>
-                    );
-                })}
-            </nav>
+            {/* Overlay for mobile */}
+            {isOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-[999] lg:hidden backdrop-blur-sm"
+                    onClick={() => setIsOpen(false)}
+                />
+            )}
 
-            {/* User Section */}
-            <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '12px',
-                    background: 'rgba(255,255,255,0.03)',
-                    borderRadius: '12px',
-                    marginBottom: '16px'
-                }}>
-                    <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '50%',
-                        background: 'var(--color-primary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 600,
-                        fontSize: '0.875rem'
-                    }}>
-                        {user.name && user.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div style={{ flex: 1, overflow: 'hidden' }}>
-                        <p style={{ margin: 0, fontWeight: 500, fontSize: '0.875rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user.name}</p>
-                        <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.5, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user.email}</p>
-                    </div>
+            <div className={`gg-sidebar fixed left-0 top-0 h-screen w-[280px] bg-white flex flex-col z-[1000] shadow-2xl transition-transform duration-300 transform lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                {/* Logo Section */}
+                <div style={{ padding: '32px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+                        <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '10px',
+                            background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 4px 12px rgba(5,150,105,0.4)'
+                        }}>
+                            <Leaf size={20} color="white" />
+                        </div>
+                        <div>
+                            <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, lineHeight: 1 }}>
+                                <span className="text-gray-800">Green</span>
+                                <span style={{ color: 'var(--color-primary)' }}>Guard</span>
+                            </h1>
+                            <p style={{ margin: 0, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.5, marginTop: '4px' }}>Forest Monitor</p>
+                        </div>
+                    </Link>
                 </div>
 
-                <button
-                    onClick={handleLogout}
-                    style={{
-                        width: '100%',
-                        padding: '12px',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        color: '#fda4af',
-                        cursor: 'pointer',
+                {/* Navigation */}
+                <nav style={{ flex: 1, padding: '24px 0', overflowY: 'auto' }}>
+                    <p style={{
+                        padding: '0 24px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        color: '#64748b',
+                        marginBottom: '16px'
+                    }}>Menu</p>
+                    {menuItems.map((item) => {
+                        const isActive = location.pathname === item.path;
+                        return (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                onClick={() => setIsOpen(false)}
+                                className={`gg-nav-item ${isActive ? 'active' : ''}`}
+                                style={{ textDecoration: 'none' }}
+                            >
+                                <item.icon size={20} style={{ opacity: isActive ? 1 : 0.7 }} />
+                                <span>{item.label}</span>
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                {/* User Section */}
+                <div style={{ padding: '24px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                    <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        fontWeight: 500,
-                        transition: 'all 0.2s ease'
+                        gap: '12px',
+                        padding: '12px',
+                        background: 'rgba(0,0,0,0.03)',
+                        borderRadius: '12px',
+                        marginBottom: '16px'
                     }}>
-                    <LogOut size={18} />
-                    <span>Sign Out</span>
-                </button>
+                        <div style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '50%',
+                            background: 'var(--color-primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 600,
+                            fontSize: '0.875rem',
+                            color: 'white'
+                        }}>
+                            {user.name && user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                            <p className="text-gray-800" style={{ margin: 0, fontWeight: 500, fontSize: '0.875rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user.name}</p>
+                            <p className="text-gray-500" style={{ margin: 0, fontSize: '0.75rem', opacity: 0.8, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user.email}</p>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleLogout}
+                        style={{
+                            width: '100%',
+                            padding: '12px',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            fontWeight: 500,
+                            transition: 'all 0.2s ease'
+                        }}>
+                        <LogOut size={18} />
+                        <span>Sign Out</span>
+                    </button>
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 

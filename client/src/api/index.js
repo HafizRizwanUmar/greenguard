@@ -18,6 +18,7 @@ export const fetchNews = () => API.get('/news');
 export const sendContact = (data) => API.post('/contact', data);
 export const fetchReports = () => API.get('/reports');
 export const createReport = (reportData) => API.post('/reports', reportData);
+export const updateReport = (id, data) => API.put(`/reports/${id}`, data);
 export const analyzeArea = (data) => API.post('/reports/analyze', data); // Trigger Python analysis
 
 // Auth

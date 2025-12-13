@@ -84,4 +84,30 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
+// @route   PUT api/reports/:id
+// @desc    Update a report (e.g. rename)
+// @access  Private
+router.put('/:id', auth, async (req, res) => {
+    try {
+        const { areaName } = req.body;
+
+        let report = await AnalysisReport.findById(req.params.id);
+        if (!report) return res.status(404).json({ msg: 'Report not found' });
+
+        // Ensure user owns report
+        if (report.userId.toString() !== req.user.id) {
+            return res.status(401).json({ msg: 'Not authorized' });
+        }
+
+        if (areaName) report.areaName = areaName;
+
+        await report.save();
+        res.json(report);
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

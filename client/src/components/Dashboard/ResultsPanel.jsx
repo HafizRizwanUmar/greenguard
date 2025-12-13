@@ -77,25 +77,55 @@ const ResultsPanel = ({ data }) => {
 
     const handleDownloadReport = () => {
         if (!hasData) return;
-        const reportContent = `
-GreenGuard Analysis Report
---------------------------
-Date: ${new Date().toLocaleDateString()}
-Total Area: ${data.totalForestArea} km²
-Forest Cover: ${(100 - data.deforestationPercent).toFixed(1)}%
-Deforestation: ${data.deforestationPercent}%
 
-Analysis completed using DeepLabV3+ Model.
-        `;
-        const blob = new Blob([reportContent], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `GreenGuard_Report_${Date.now()}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        import('jspdf').then(jsPDF => {
+            import('jspdf-autotable').then(autoTable => {
+                const doc = new jsPDF.default();
+
+                // Header
+                doc.setFontSize(22);
+                doc.setTextColor(22, 163, 74); // Green color
+                doc.text("GreenGuard Analysis Report", 14, 22);
+
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                doc.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
+
+                // Divider
+                doc.setDrawColor(22, 163, 74);
+                doc.line(14, 35, 196, 35);
+
+                // Summary Stats
+                doc.setFontSize(16);
+                doc.setTextColor(0);
+                doc.text("Deforestation Overview", 14, 45);
+
+                const tableData = [
+                    ["Total Forest Area", `${data.totalForestArea} km²`],
+                    ["Remaining Forest", `${(100 - data.deforestationPercent).toFixed(1)}%`],
+                    ["Deforested Area", `${data.deforestationPercent}%`],
+                    ["AI Confidence Score", `${data.confidence || 'N/A'}`]
+                ];
+
+                autoTable.default(doc, {
+                    startY: 50,
+                    head: [['Metric', 'Value']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [22, 163, 74] },
+                    styles: { fontSize: 12, cellPadding: 6 }
+                });
+
+                // Explanation
+                const finalY = doc.lastAutoTable.finalY || 100;
+                doc.setFontSize(11);
+                doc.setTextColor(80);
+                doc.text("This report was generated using GreenGuard's advanced satellite imagery analysis powered by deep learning models (DeepLabV3+).", 14, finalY + 15, { maxWidth: 180 });
+
+                // Save
+                doc.save(`GreenGuard_Report_${Date.now()}.pdf`);
+            });
+        });
     };
 
     return (

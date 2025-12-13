@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { fetchNews } from '../../api';
 import Sidebar from '../../components/Sidebar';
+import ComingSoon from '../../components/ComingSoon';
+import { SITE_CONFIG } from '../../config/siteConfig';
 
 const News = () => {
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!SITE_CONFIG.NEWS_ACTIVE) return;
+
         const getNews = async () => {
             try {
                 const { data } = await fetchNews();
@@ -20,11 +24,25 @@ const News = () => {
         getNews();
     }, []);
 
+    if (!SITE_CONFIG.NEWS_ACTIVE) {
+        return (
+            <div className="flex min-h-screen bg-gray-50">
+                <Sidebar />
+                <main className="lg:ml-[280px] p-4 lg:p-8 flex-1 transition-all">
+                    <ComingSoon
+                        title="Forest News Feed"
+                        description="Stay updated with the latest in environmental conservation, forestry, and sustainable practices. Curated news feed coming soon."
+                    />
+                </main>
+            </div>
+        );
+    }
+
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-bg-body)' }}>
             <Sidebar />
-            <main style={{ marginLeft: '280px', flex: 1, padding: '32px' }}>
-                <h1 className="text-3xl font-bold text-green-800 mb-6">Forest & Climate News</h1>
+            <main className="lg:ml-[280px] p-4 lg:p-8 flex-1 transition-all">
+                <h1 className="text-2xl lg:text-3xl font-bold text-green-800 mb-6">Forest & Climate News</h1>
                 {loading ? (
                     <div className="text-center text-gray-500">Loading Latest Updates...</div>
                 ) : (

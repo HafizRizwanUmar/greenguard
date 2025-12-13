@@ -1,4 +1,9 @@
+const dns = require('dns');
+// Set Google & Cloudflare DNS to bypass local router issues
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 require('dotenv').config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');

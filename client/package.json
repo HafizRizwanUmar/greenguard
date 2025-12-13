@@ -18,6 +18,8 @@
     "@tailwindcss/postcss": "^4.1.17",
     "axios": "^1.13.2",
     "framer-motion": "^12.23.25",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
     "leaflet": "^1.9.4",
     "leaflet-draw": "^1.0.4",
     "lucide-react": "^0.556.0",

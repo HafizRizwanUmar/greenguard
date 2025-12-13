@@ -1,11 +1,11 @@
-import React, { useRef, useState } from 'react';
-import { MapContainer, TileLayer, FeatureGroup } from 'react-leaflet';
+import React, { useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, FeatureGroup, Polygon, useMap } from 'react-leaflet';
 import { EditControl } from 'react-leaflet-draw';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
+import L from 'leaflet';
 
 // Fix for Leaflet default icon issue
-import L from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
@@ -17,53 +17,112 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const MapComponent = (props) => {
-    const mapRef = useRef();
-    const [mapLayers, setMapLayers] = useState([]);
+// Helper component to handle view changes
+const MapViewHandler = ({ center, zoom }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (center) {
+            map.flyTo(center, zoom || 13);
+        }
+    }, [center, zoom, map]);
+    return null;
+};
+
+const MapComponent = ({ onAreaSelected, selectedArea, mapCenter, mapZoom }) => {
+    const featureGroupRef = useRef();
+
+    // World polygon coordinates (outer ring)
+    const worldCoords = [
+        [90, -180],
+        [90, 180],
+        [-90, 180],
+        [-90, -180]
+    ];
 
     const _onCreate = (e) => {
-        console.log("Draw Created:", e);
-        const { layerType, layer } = e;
-        if (layerType === 'rectangle') {
-            const bounds = layer.getBounds();
-            const coordinates = {
-                ne: bounds.getNorthEast(),
-                sw: bounds.getSouthWest()
-            };
-            console.log("Selected Area Coordinates:", coordinates);
-            if (props.onAreaSelected) {
-                props.onAreaSelected(coordinates);
-            }
+        const { layer } = e;
+
+        // Remove all other layers to enforce single polygon
+        if (featureGroupRef.current) {
+            featureGroupRef.current.clearLayers();
+            featureGroupRef.current.addLayer(layer);
         }
+
+        const bounds = layer.getBounds();
+        const coordinates = {
+            ne: bounds.getNorthEast(),
+            sw: bounds.getSouthWest()
+        };
+
+        onAreaSelected(coordinates);
     };
 
     const _onEdited = (e) => {
-        console.log("Draw Edited:", e);
+        // Handle edits if needed, getting the first layer
+        e.layers.eachLayer(layer => {
+            const bounds = layer.getBounds();
+            onAreaSelected({
+                ne: bounds.getNorthEast(),
+                sw: bounds.getSouthWest()
+            });
+        });
     };
 
-    const _onDeleted = (e) => {
-        console.log("Draw Deleted:", e);
+    // Calculate mask polygon if area is selected
+    const getMaskPositions = () => {
+        if (!selectedArea) return null;
+
+        // Coordinates of the selected area (hole)
+        // Must be in correct winding order relative to outer ring for "hole" effect
+        // Leaflet handles array of arrays as [Outer, Hole1, Hole2...]
+        const hole = [
+            [selectedArea.ne.lat, selectedArea.sw.lng], // Top Left
+            [selectedArea.ne.lat, selectedArea.ne.lng], // Top Right
+            [selectedArea.sw.lat, selectedArea.ne.lng], // Bottom Right
+            [selectedArea.sw.lat, selectedArea.sw.lng]  // Bottom Left
+        ];
+
+        return [worldCoords, hole];
     };
+
+    const maskPositions = getMaskPositions();
 
     return (
         <div className="h-full w-full z-0">
-            <MapContainer center={[51.505, -0.09]} zoom={13} scrollWheelZoom={true} className="h-full w-full" ref={mapRef}>
+            <MapContainer center={[20, 0]} zoom={2} minZoom={2} scrollWheelZoom={true} className="h-full w-full">
+                <MapViewHandler center={mapCenter} zoom={mapZoom} />
+
                 {/* Satellite Tile Layer */}
                 <TileLayer
                     url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                     attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
                 />
 
-                <FeatureGroup>
+                {/* Mask Overlay - Dims the non-selected area */}
+                {maskPositions && (
+                    <Polygon
+                        positions={maskPositions}
+                        pathOptions={{
+                            color: 'transparent',
+                            fillColor: '#000',
+                            fillOpacity: 0.7
+                        }}
+                    />
+                )}
+
+                <FeatureGroup ref={featureGroupRef}>
                     <EditControl
                         position="topright"
                         onCreated={_onCreate}
                         onEdited={_onEdited}
-                        onDeleted={_onDeleted}
                         draw={{
                             rectangle: {
-                                shapeOptions: { color: "#16a34a" },
-                                showArea: false // Disable area calculation to avoid type error
+                                shapeOptions: {
+                                    color: "#22c55e",
+                                    weight: 2,
+                                    fillOpacity: 0.1
+                                },
+                                showArea: false
                             },
                             polyline: false,
                             polygon: false,

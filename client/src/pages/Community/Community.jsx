@@ -4,6 +4,8 @@ import NewsFeed from '../../components/Dashboard/NewsFeed';
 import Button from '../../components/Button';
 import { ThumbsUp, MessageSquare, Share2 } from 'lucide-react';
 import { fetchPosts, createPost } from '../../api';
+import ComingSoon from '../../components/ComingSoon';
+import { SITE_CONFIG } from '../../config/siteConfig';
 
 const Community = () => {
     const [posts, setPosts] = useState([]);
@@ -11,6 +13,8 @@ const Community = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!SITE_CONFIG.COMMUNITY_ACTIVE) return;
+
         const loadPosts = async () => {
             try {
                 const { data } = await fetchPosts();
@@ -49,10 +53,24 @@ const Community = () => {
         }
     };
 
+    if (!SITE_CONFIG.COMMUNITY_ACTIVE) {
+        return (
+            <div className="flex min-h-screen bg-gray-50">
+                <Sidebar />
+                <main className="lg:ml-[280px] flex-1 p-4 lg:p-8 transition-all">
+                    <ComingSoon
+                        title="Community Hub"
+                        description="Connect with fellow environmentalists, share your analysis reports, and collaborate on preservation efforts. The GreenGuard Community is launching soon."
+                    />
+                </main>
+            </div>
+        );
+    }
+
     return (
         <div className="flex min-h-screen bg-gray-100">
             <Sidebar />
-            <main className="ml-64 flex-1 p-8">
+            <main className="lg:ml-[280px] flex-1 p-4 lg:p-8 transition-all w-full overflow-hidden">
                 <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                     {/* Feed Section */}
