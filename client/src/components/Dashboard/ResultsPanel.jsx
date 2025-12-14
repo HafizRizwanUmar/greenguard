@@ -1,6 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { TrendingDown, TreePine, Target, Download, AlertTriangle, ArrowUpRight } from 'lucide-react';
+import { TrendingDown, TreePine, Target, Download, AlertTriangle, ArrowUpRight, Maximize } from 'lucide-react';
 import Button from '../Button';
 import api from '../../api';
 
@@ -25,6 +25,13 @@ const ResultsPanel = ({ data }) => {
             icon: Target,
             color: '#3b82f6',
             bg: '#eff6ff'
+        },
+        {
+            label: 'Perimeter',
+            value: hasData && data.perimeter ? `${data.perimeter} km` : 'N/A',
+            icon: Maximize,
+            color: '#8b5cf6',
+            bg: '#f3e8ff'
         },
         {
             label: 'Forest Cover',
@@ -102,6 +109,7 @@ const ResultsPanel = ({ data }) => {
 
                 const tableData = [
                     ["Total Forest Area", `${data.totalForestArea} km²`],
+                    ["Perimeter (Boundary)", `${data.perimeter || 'N/A'} km`],
                     ["Remaining Forest", `${(100 - data.deforestationPercent).toFixed(1)}%`],
                     ["Deforested Area", `${data.deforestationPercent}%`],
                     ["AI Confidence Score", `${data.confidence || 'N/A'}`]

@@ -7,103 +7,83 @@ import { RefreshCcw, Calendar, Search } from 'lucide-react';
 
 const Dashboard = () => {
     // State with Persistence
-    const [selectedArea, setSelectedArea] = useState(() => {
-        const saved = localStorage.getItem('gg_selectedArea');
-        return saved ? JSON.parse(saved) : null;
-    });
+    // Hardcoded Area of Interest (AOI)
+    // Format: [Lng, Lat] as provided by user, needs conversion to [Lat, Lng] for Leaflet
+    const AOI_COORDINATES = [
+        [72.83006459906208, 33.75992197053082],
+        [72.81392842962849, 33.713955521176736],
+        [72.85169393255818, 33.679678798720474],
+        [72.95434743597615, 33.710528464301944],
+        [72.96327382757771, 33.70138897734782],
+        [73.10369283392536, 33.74878950106604],
+        [73.11948568060505, 33.720809224597446],
+        [73.32356524976677, 33.81731322240773],
+        [73.27481341871209, 33.861798796957075],
+        [72.83006459906208, 33.75992197053082]
+    ].map(coord => ({ lng: coord[0], lat: coord[1] })); // Convert to object for easier handling
+
+    // Initial Area State - Always set to AOI
+    const [selectedArea, setSelectedArea] = useState(AOI_COORDINATES);
 
     const [analysisResults, setAnalysisResults] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Date State
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+    // Date State - Month/Year only
+    const [startMonth, setStartMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    const [endMonth, setEndMonth] = useState(new Date().toISOString().slice(0, 7));   // YYYY-MM
 
-    // Manual Focus State
-    const [manualLat, setManualLat] = useState(() => localStorage.getItem('gg_manualLat') || '');
-    const [manualLng, setManualLng] = useState(() => localStorage.getItem('gg_manualLng') || '');
-    const [manualRadius, setManualRadius] = useState(() => localStorage.getItem('gg_manualRadius') || '');
-
-    // Map View State
-    const [mapCenter, setMapCenter] = useState(() => {
-        const saved = localStorage.getItem('gg_mapCenter');
-        return saved ? JSON.parse(saved) : null;
-    });
-    const [mapZoom, setMapZoom] = useState(() => {
-        const saved = localStorage.getItem('gg_mapZoom');
-        return saved ? parseInt(saved) : null;
-    });
+    // Map View State - Center on AOI roughly
+    const [mapCenter, setMapCenter] = useState([33.75, 73.0]); // Centroid approx
+    const [mapZoom, setMapZoom] = useState(11);
 
     // Persistence Effects
-    useEffect(() => {
-        if (selectedArea) localStorage.setItem('gg_selectedArea', JSON.stringify(selectedArea));
-    }, [selectedArea]);
-
-    useEffect(() => {
-        localStorage.setItem('gg_manualLat', manualLat);
-        localStorage.setItem('gg_manualLng', manualLng);
-        localStorage.setItem('gg_manualRadius', manualRadius);
-    }, [manualLat, manualLng, manualRadius]);
-
-    useEffect(() => {
-        if (mapCenter) localStorage.setItem('gg_mapCenter', JSON.stringify(mapCenter));
-        if (mapZoom) localStorage.setItem('gg_mapZoom', mapZoom.toString());
-    }, [mapCenter, mapZoom]);
+    // Removed persistence for manual stuff since we hardcode AOI now
 
     const handleAreaSelected = (coordinates) => {
+        // Just update if user draws something else, but we prefer valid AOI
+        // In this specific request, user wants AOI.
+        // If we want to allow user to draw *within* AOI or new AOI, we keep this.
+        // But user said "Create polygon it still stuck on 26km", implies they draw. 
+        // AND "use these AOI Coordinates".
+        // I will initialize with AOI. If they draw, we use drawn.
         setSelectedArea(coordinates);
-        // Calculate center for display if needed
-        const centerLat = (coordinates.ne.lat + coordinates.sw.lat) / 2;
-        const centerLng = (coordinates.ne.lng + coordinates.sw.lng) / 2;
-        // setMapCenter([centerLat, centerLng]); 
-        // We might not want to auto-center on draw as it disrupts the user's flow, 
-        // but we definitely want to persist the current view if they move it.
-        // Actually, let's trust the MapComponent to report its move end if we wired it up, 
-        // but for now, just saving the selected area is enough.
-        // If we want to restore exact view, we need onMoveEnd from map.
-        // For this task, persisting focus region (selectedArea) is key.
-    };
-
-    const handleManualFocus = () => {
-        if (!manualLat || !manualLng || !manualRadius) {
-            alert("Please enter Latitude, Longitude, and Radius.");
-            return;
-        }
-
-        const lat = parseFloat(manualLat);
-        const lng = parseFloat(manualLng);
-        const rad = parseFloat(manualRadius);
-
-        // Approximate 1 deg = 111km
-        const dLat = rad / 111;
-        const dLng = rad / (111 * Math.cos(lat * (Math.PI / 180)));
-
-        const ne = { lat: lat + dLat, lng: lng + dLng };
-        const sw = { lat: lat - dLat, lng: lng - dLng };
-
-        const newArea = { ne, sw };
-
-        setSelectedArea(newArea);
-        setMapCenter([lat, lng]);
-        setMapZoom(13); // Zoom level appropriate for the radius? varying logic could apply
     };
 
     const handleAnalyze = async () => {
-        if (!selectedArea) {
-            alert("Please select an area on the map via drawing or manual coordinates.");
-            return;
-        }
-
         setLoading(true);
         setError(null);
-        setAnalysisResults(null); // Reset previous results
+        setAnalysisResults(null);
 
         try {
+            // If selectedArea is the array (AOI), use it directly. 
+            // If it's the object from Draw tool (ne/sw bounds), we need to pass that too, 
+            // but backend `inference.py` expects a list of points or bounds? 
+            // My updated inference.py handles list of objects {lat, lng} or list of arrays.
+
+            // Normalize selectedArea to list of points for backend
+            let coordinatesToSend = [];
+            if (Array.isArray(selectedArea)) {
+                coordinatesToSend = selectedArea; // Already [{lat, lng}, ...]
+            } else if (selectedArea && selectedArea.ne && selectedArea.sw) {
+                // It's a box (Leaflet Draw Rectangle)
+                coordinatesToSend = [
+                    { lat: selectedArea.ne.lat, lng: selectedArea.sw.lng },
+                    { lat: selectedArea.ne.lat, lng: selectedArea.ne.lng },
+                    { lat: selectedArea.sw.lat, lng: selectedArea.ne.lng },
+                    { lat: selectedArea.sw.lat, lng: selectedArea.sw.lng },
+                    { lat: selectedArea.ne.lat, lng: selectedArea.sw.lng }
+                ];
+            } else {
+                // Fallback or complex polygon from draw (if featureGroup wired differently)
+                // For now, assuming Rectangle draw from previous MapComponent
+                coordinatesToSend = AOI_COORDINATES;
+            }
+
             const { data } = await analyzeArea({
-                coordinates: selectedArea,
-                startDate: startDate,
-                endDate: endDate
+                coordinates: coordinatesToSend,
+                startDate: `${startMonth}-01`,
+                endDate: `${endMonth}-28` // Approximate end of month
             });
 
             if (data.status === 'success') {
@@ -140,20 +120,20 @@ const Dashboard = () => {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {/* Date Range Picker */}
+                        {/* Date Range Picker - Month/Year only */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '4px 8px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                             <Calendar size={16} color="var(--color-text-muted)" />
                             <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
+                                type="month"
+                                value={startMonth}
+                                onChange={(e) => setStartMonth(e.target.value)}
                                 style={{ border: 'none', fontSize: '0.875rem', color: '#64748b', outline: 'none' }}
                             />
                             <span style={{ color: '#cbd5e1' }}>-</span>
                             <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
+                                type="month"
+                                value={endMonth}
+                                onChange={(e) => setEndMonth(e.target.value)}
                                 style={{ border: 'none', fontSize: '0.875rem', color: '#64748b', outline: 'none' }}
                             />
                         </div>
@@ -183,73 +163,7 @@ const Dashboard = () => {
                             mapZoom={mapZoom}
                         />
 
-                        {/* Floating Region Selector Card */}
-                        <div className="gg-glass-panel" style={{
-                            position: 'absolute',
-                            top: '24px',
-                            left: '24px',
-                            zIndex: 1000,
-                            padding: '20px',
-                            borderRadius: '16px',
-                            maxWidth: '320px',
-                            background: 'rgba(255, 255, 255, 0.95)'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Region Focus</h3>
-                                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                    <span style={{ height: '8px', width: '8px', background: selectedArea ? '#22c55e' : '#cbd5e1', borderRadius: '50%', display: 'inline-block' }}></span>
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: selectedArea ? '#22c55e' : '#64748b' }}>
-                                        {selectedArea ? "Focused" : "No Focus"}
-                                    </span>
-                                </div>
-                            </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <input
-                                        type="number"
-                                        placeholder="Lat"
-                                        value={manualLat}
-                                        onChange={(e) => setManualLat(e.target.value)}
-                                        className="gg-input"
-                                        style={{ width: '50%' }}
-                                    />
-                                    <input
-                                        type="number"
-                                        placeholder="Lng"
-                                        value={manualLng}
-                                        onChange={(e) => setManualLng(e.target.value)}
-                                        className="gg-input"
-                                        style={{ width: '50%' }}
-                                    />
-                                </div>
-                                <input
-                                    type="number"
-                                    placeholder="Radius (km)"
-                                    value={manualRadius}
-                                    onChange={(e) => setManualRadius(e.target.value)}
-                                    className="gg-input"
-                                />
-                                <button
-                                    onClick={handleManualFocus}
-                                    className="gg-btn"
-                                    style={{
-                                        width: '100%',
-                                        justifyContent: 'center',
-                                        background: 'var(--color-primary)',
-                                        color: 'white',
-                                        marginTop: '4px'
-                                    }}
-                                >
-                                    <Search size={14} />
-                                    <span>Set Focus Region</span>
-                                </button>
-                            </div>
-
-                            <p style={{ margin: '12px 0 0 0', fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.4 }}>
-                                Enter coordinates or use the Draw tool on the map to select a region.
-                            </p>
-                        </div>
                     </div>
 
                     {/* Results Sidebar */}

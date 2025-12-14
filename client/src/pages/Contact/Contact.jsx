@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { sendContact } from '../../api';
 import Sidebar from '../../components/Sidebar';
+import ComingSoon from '../../components/ComingSoon';
+import { SITE_CONFIG } from '../../config/siteConfig';
 
 const Contact = () => {
     const [formData, setFormData] = useState({
@@ -27,6 +29,20 @@ const Contact = () => {
             setStatus('error');
         }
     };
+
+    if (!SITE_CONFIG.CONTACT_ACTIVE) {
+        return (
+            <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-bg-body)' }}>
+                <Sidebar />
+                <main className="lg:ml-[280px] p-4 lg:p-8 flex-1 transition-all flex flex-col justify-center items-center">
+                    <ComingSoon
+                        title="Contact Support"
+                        description="We are currently upgrading our support system to better assist you. Direct contact channels will be available soon."
+                    />
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-bg-body)' }}>

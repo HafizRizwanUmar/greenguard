@@ -72,20 +72,39 @@ const MapComponent = ({ onAreaSelected, selectedArea, mapCenter, mapZoom }) => {
     const getMaskPositions = () => {
         if (!selectedArea) return null;
 
-        // Coordinates of the selected area (hole)
-        // Must be in correct winding order relative to outer ring for "hole" effect
-        // Leaflet handles array of arrays as [Outer, Hole1, Hole2...]
-        const hole = [
-            [selectedArea.ne.lat, selectedArea.sw.lng], // Top Left
-            [selectedArea.ne.lat, selectedArea.ne.lng], // Top Right
-            [selectedArea.sw.lat, selectedArea.ne.lng], // Bottom Right
-            [selectedArea.sw.lat, selectedArea.sw.lng]  // Bottom Left
-        ];
+        let hole = [];
+
+        // Check if selectedArea is array (AOI Polygon) or object (Draw Rectangle Bounds)
+        if (Array.isArray(selectedArea)) {
+            // selectedArea is [{lat, lng}, ...]
+            // Leaflet expects [lat, lng] arrays
+            hole = selectedArea.map(p => [p.lat, p.lng]);
+        } else if (selectedArea.ne && selectedArea.sw) {
+            // Legacy Rectangle Bounds from Draw
+            hole = [
+                [selectedArea.ne.lat, selectedArea.sw.lng], // Top Left
+                [selectedArea.ne.lat, selectedArea.ne.lng], // Top Right
+                [selectedArea.sw.lat, selectedArea.ne.lng], // Bottom Right
+                [selectedArea.sw.lat, selectedArea.sw.lng]  // Bottom Left
+            ];
+        } else {
+            return null;
+        }
 
         return [worldCoords, hole];
     };
 
     const maskPositions = getMaskPositions();
+
+    // Helper to get positions for the Green AOI Polygon display
+    const getAOIPositions = () => {
+        if (Array.isArray(selectedArea)) {
+            return selectedArea.map(p => [p.lat, p.lng]);
+        }
+        return null; // Don't verify bounds as polygon, the mask handles the dimming
+    };
+
+    const aoiPositions = getAOIPositions();
 
     return (
         <div className="h-full w-full z-0">
@@ -106,6 +125,18 @@ const MapComponent = ({ onAreaSelected, selectedArea, mapCenter, mapZoom }) => {
                             color: 'transparent',
                             fillColor: '#000',
                             fillOpacity: 0.7
+                        }}
+                    />
+                )}
+
+                {/* AOI Outline - Show the green border for hardcoded area */}
+                {aoiPositions && (
+                    <Polygon
+                        positions={aoiPositions}
+                        pathOptions={{
+                            color: '#22c55e',
+                            weight: 2,
+                            fillOpacity: 0.1
                         }}
                     />
                 )}
