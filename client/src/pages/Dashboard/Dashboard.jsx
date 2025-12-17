@@ -22,8 +22,10 @@ const Dashboard = () => {
         [72.83006459906208, 33.75992197053082]
     ].map(coord => ({ lng: coord[0], lat: coord[1] })); // Convert to object for easier handling
 
-    // Initial Area State - Always set to AOI
+    // Initial Area State - AOI is the base, selectedArea is the user's sub-selection
+    // On load, selectedArea is the whole AOI.
     const [selectedArea, setSelectedArea] = useState(AOI_COORDINATES);
+    const [baseAOI] = useState(AOI_COORDINATES);
 
     const [analysisResults, setAnalysisResults] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -159,6 +161,7 @@ const Dashboard = () => {
                         <MapComponent
                             onAreaSelected={handleAreaSelected}
                             selectedArea={selectedArea}
+                            baseAOI={baseAOI}
                             mapCenter={mapCenter}
                             mapZoom={mapZoom}
                         />

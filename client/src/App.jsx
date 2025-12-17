@@ -9,6 +9,7 @@ import History from './pages/Dashboard/History';
 import Community from './pages/Community/Community';
 import Dashboard from './pages/Dashboard/Dashboard';
 import News from './pages/News/News';
+import Home from './pages/Home/Home';
 import Contact from './pages/Contact/Contact';
 
 function App() {
@@ -47,7 +48,7 @@ function App() {
                         </PrivateRoute>
                     } />
 
-                    <Route path="/" element={<Login />} />
+                    <Route path="/" element={<Home />} />
                 </Routes>
             </div>
         </Router>

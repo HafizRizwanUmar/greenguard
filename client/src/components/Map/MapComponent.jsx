@@ -28,7 +28,7 @@ const MapViewHandler = ({ center, zoom }) => {
     return null;
 };
 
-const MapComponent = ({ onAreaSelected, selectedArea, mapCenter, mapZoom }) => {
+const MapComponent = ({ onAreaSelected, selectedArea, baseAOI, mapCenter, mapZoom }) => {
     const featureGroupRef = useRef();
 
     // World polygon coordinates (outer ring)
@@ -68,25 +68,15 @@ const MapComponent = ({ onAreaSelected, selectedArea, mapCenter, mapZoom }) => {
         });
     };
 
-    // Calculate mask polygon if area is selected
+    // Calculate mask polygon using BASE AOI (Always highlight the main AOI)
     const getMaskPositions = () => {
-        if (!selectedArea) return null;
+        if (!baseAOI) return null;
 
         let hole = [];
 
-        // Check if selectedArea is array (AOI Polygon) or object (Draw Rectangle Bounds)
-        if (Array.isArray(selectedArea)) {
-            // selectedArea is [{lat, lng}, ...]
-            // Leaflet expects [lat, lng] arrays
-            hole = selectedArea.map(p => [p.lat, p.lng]);
-        } else if (selectedArea.ne && selectedArea.sw) {
-            // Legacy Rectangle Bounds from Draw
-            hole = [
-                [selectedArea.ne.lat, selectedArea.sw.lng], // Top Left
-                [selectedArea.ne.lat, selectedArea.ne.lng], // Top Right
-                [selectedArea.sw.lat, selectedArea.ne.lng], // Bottom Right
-                [selectedArea.sw.lat, selectedArea.sw.lng]  // Bottom Left
-            ];
+        // Base AOI is likely an array of [{lat, lng}]
+        if (Array.isArray(baseAOI)) {
+            hole = baseAOI.map(p => [p.lat, p.lng]);
         } else {
             return null;
         }
@@ -98,17 +88,89 @@ const MapComponent = ({ onAreaSelected, selectedArea, mapCenter, mapZoom }) => {
 
     // Helper to get positions for the Green AOI Polygon display
     const getAOIPositions = () => {
-        if (Array.isArray(selectedArea)) {
-            return selectedArea.map(p => [p.lat, p.lng]);
+        if (Array.isArray(baseAOI)) {
+            return baseAOI.map(p => [p.lat, p.lng]);
         }
-        return null; // Don't verify bounds as polygon, the mask handles the dimming
+        return null;
     };
 
     const aoiPositions = getAOIPositions();
 
+    // Helper to get selected area positions (The dynamic user drawing)
+    const getSelectedPositions = () => {
+        if (!selectedArea) return null;
+        // If selectedArea is the same as baseAOI (initial state), don't draw it twice
+        if (selectedArea === baseAOI) return null;
+
+        if (Array.isArray(selectedArea)) {
+            return selectedArea.map(p => [p.lat, p.lng]);
+        }
+        // If it's a rectangle object, we let the FeatureGroup handle it? 
+        // No, FeatureGroup handles the EDITABLE shape. 
+        // We just need to ensure `selectedArea` stays highlighted if it's passed back.
+        // Actually, FeatureGroup will contain the layer if we are drawing.
+        // But if we persist the state, we might want to show it.
+        // For now, let's trust the FeatureGroup EditControl for the DRAWN shape, 
+        // and just use this logic for the AOI.
+        return null;
+    };
+
+    // Calculate maxBounds based on selectedArea
+    const getMaxBounds = () => {
+        if (!selectedArea) return null;
+
+        let bounds;
+        if (Array.isArray(selectedArea)) {
+            // Polygon - calculate bounds
+            if (selectedArea.length > 0) {
+                const lats = selectedArea.map(p => p.lat);
+                const lngs = selectedArea.map(p => p.lng);
+                const minLat = Math.min(...lats);
+                const maxLat = Math.max(...lats);
+                const minLng = Math.min(...lngs);
+                const maxLng = Math.max(...lngs);
+
+                // Add 50% buffer
+                const latBuffer = (maxLat - minLat) * 0.5;
+                const lngBuffer = (maxLng - minLng) * 0.5;
+
+                bounds = [
+                    [minLat - latBuffer, minLng - lngBuffer],
+                    [maxLat + latBuffer, maxLng + lngBuffer]
+                ];
+            }
+        } else if (selectedArea.ne && selectedArea.sw) {
+            // Rectangle
+            const minLat = Math.min(selectedArea.sw.lat, selectedArea.ne.lat);
+            const maxLat = Math.max(selectedArea.sw.lat, selectedArea.ne.lat);
+            const minLng = Math.min(selectedArea.sw.lng, selectedArea.ne.lng);
+            const maxLng = Math.max(selectedArea.sw.lng, selectedArea.ne.lng);
+
+            const latBuffer = (maxLat - minLat) * 0.5;
+            const lngBuffer = (maxLng - minLng) * 0.5;
+
+            bounds = [
+                [minLat - latBuffer, minLng - lngBuffer],
+                [maxLat + latBuffer, maxLng + lngBuffer]
+            ];
+        }
+
+        return bounds || [[-90, -180], [90, 180]];
+    };
+
+    const maxBounds = getMaxBounds();
+
     return (
         <div className="h-full w-full z-0">
-            <MapContainer center={[20, 0]} zoom={2} minZoom={2} scrollWheelZoom={true} className="h-full w-full">
+            <MapContainer
+                center={[20, 0]}
+                zoom={2}
+                minZoom={2}
+                scrollWheelZoom={true}
+                className="h-full w-full"
+                maxBounds={maxBounds}
+                maxBoundsViscosity={1.0}
+            >
                 <MapViewHandler center={mapCenter} zoom={mapZoom} />
 
                 {/* Satellite Tile Layer */}
