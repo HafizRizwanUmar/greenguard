@@ -11,3 +11,6 @@ planetary-computer
 odc-stac
 rioxarray
 pandas
+shapely
+pyproj
+

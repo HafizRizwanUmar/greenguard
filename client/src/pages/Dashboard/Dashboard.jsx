@@ -53,6 +53,12 @@ const Dashboard = () => {
     };
 
     const handleAnalyze = async () => {
+        // Validation: Prevent analysis if dates are the same
+        if (startMonth === endMonth) {
+            alert("Please select different months for the Start and End date to allow the system to detect changes over time.");
+            return;
+        }
+
         setLoading(true);
         setError(null);
         setAnalysisResults(null);

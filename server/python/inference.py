@@ -241,6 +241,8 @@ def fetch_real_satellite_image(coordinates, start_date=None, end_date=None, widt
             # List is sorted desc, so last item is oldest.
             item_t1 = items[-1]
         else:
+            # Only one item found in range - Use it as both "Before" and "After"
+            # This handles "Same Month" selection naturally
             item_t1 = item_t2
 
         # 5. Load Data via odc-stac
@@ -349,9 +351,10 @@ def fetch_esri_or_synthetic(coordinates, width=512, height=512):
         if response.status_code == 200:
             img_real = Image.open(BytesIO(response.content)).convert("RGB")
             img_t2 = img_real
-            # Synthetic fallback for T1 as before
-            img_t1_synth, _ = generate_synthetic_satellite_images(width, height)
-            return img_t1_synth, img_t2
+            # Use T2 as T1 for fallback to avoid false deforestation signal
+            # This means "No historical data found, assuming no change"
+            img_t1 = img_t2.copy() 
+            return img_t1, img_t2
         else:
             return generate_synthetic_satellite_images(width, height)
     except Exception as e:
