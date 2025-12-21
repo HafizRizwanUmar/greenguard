@@ -161,39 +161,183 @@ def create_result_overlay(original_image, prediction_mask):
     return combined
 
 import requests
+# STAC Imports
+try:
+    import pystac_client
+    import planetary_computer
+    import odc.stac
+    import xarray as xs
+    import pandas as pd
+    STAC_AVAILABLE = True
+except ImportError:
+    STAC_AVAILABLE = False
+    print("STAC libraries not found. Falling back to synthetic/Esri.")
 
-def fetch_real_satellite_image(coordinates, width=512, height=512):
+def fetch_real_satellite_image(coordinates, start_date=None, end_date=None, width=512, height=512):
     """
-    Fetches a real satellite image from Esri World Imagery based on coordinates.
+    Fetches real satellite images from Microsoft Planetary Computer (Sentinel-2 L2A).
     Returns: (img_t1, img_t2)
-    img_t2 is the fetched real image.
-    img_t1 is a generated "clean" version (past reference) or duplicate.
+    img_t1: "Before" image (Start of range or 1 year ago)
+    img_t2: "After" image (End of range or recent)
+    """
+    # Fallback to existing logic if STAC not available or coordinates missing
+    if not STAC_AVAILABLE or not coordinates:
+        return fetch_esri_or_synthetic(coordinates, width, height)
+
+    try:
+        # 1. Parse Coordinates & BBox
+        lats = []
+        lons = []
+        for p in coordinates:
+            if isinstance(p, dict):
+                lats.append(p.get('lat'))
+                lons.append(p.get('lng'))
+            elif isinstance(p, list):
+                lons.append(p[0])
+                lats.append(p[1])
+        
+        if not lats: return fetch_esri_or_synthetic([], width, height)
+
+        min_lat, max_lat = min(lats), max(lats)
+        min_lon, max_lon = min(lons), max(lons)
+        bbox = [min_lon, min_lat, max_lon, max_lat]
+
+        # 2. Define Time Range
+        # Default: Look at last 12 months if not provided
+        if not start_date or not end_date:
+            end_date_obj = pd.Timestamp.now()
+            start_date_obj = end_date_obj - pd.DateOffset(months=12)
+            time_range = f"{start_date_obj.strftime('%Y-%m-%d')}/{end_date_obj.strftime('%Y-%m-%d')}"
+        else:
+            time_range = f"{start_date}/{end_date}"
+
+        # 3. Connect to STAC API
+        catalog = pystac_client.Client.open(
+            "https://planetarycomputer.microsoft.com/api/stac/v1",
+            modifier=planetary_computer.sign_inplace,
+        )
+
+        search = catalog.search(
+            collections=["sentinel-2-l2a"],
+            bbox=bbox,
+            datetime=time_range,
+            query={"eo:cloud_cover": {"lt": 10}}, # Low cloud cover
+            sort_by=[{"field": "datetime", "direction": "desc"}],
+        )
+
+        items = search.item_collection()
+
+        if len(items) < 1:
+            return fetch_esri_or_synthetic(coordinates, width, height)
+
+        # 4. Select Items (T1 and T2)
+        # T2 is the most recent (index 0)
+        item_t2 = items[0]
+        
+        # T1 needs to be sufficiently different in time. 
+        # If we have only 1 item, we duplicate or look harder.
+        if len(items) > 1:
+            # Try to find an item at least 3 months older? Or just the oldest in the list?
+            # List is sorted desc, so last item is oldest.
+            item_t1 = items[-1]
+        else:
+            item_t1 = item_t2
+
+        # 5. Load Data via odc-stac
+        # We want RGB (B04, B03, B02). Sentinel-2 resolution is 10m.
+        # We specify resolution/crs to match pixel assumptions or just output image size?
+        # odc.stac.load can regrid. Let's ask for roughly the resolution that fits 512x512 for the bbox?
+        # Or just native resolution.
+        
+        # Determine appropriate resolution or shape
+        # box width in deg ~ (max_lon - min_lon). 1 deg ~ 111km.
+        # 0.01 deg ~ 1km. 1km is 100 pixels at 10m.
+        # If user selects large area, 512x512 might be too small, but we need 512x512 for the model (assumed).
+        # Actually our model accepts dynamic size? `inference` often resizes or slices.
+        # The `generate_synthetic` makes 512x512.
+        # Let's force a relatively high resolution but limit by pixel count if possible?
+        # `odc.stac.load` supports `resolution`. 10 meters.
+        
+        # Load T2
+        ds_t2 = odc.stac.load(
+            [item_t2],
+            bands=["B04", "B03", "B02"],
+            bbox=bbox,
+            resolution=10, # 10 meters per pixel (approx 0.0001 deg) - Wait, `resolution` units depend on CRS.
+            # If we don't specify CRS, it might pick UTM (m) or EPSG:4326 (deg).
+            # Sentinel-2 native is UTM. odc-stac often reprojects.
+            # Let's specify chunks to avoid memory issues?
+            # Or simpler: Just ask for a specific geobox?
+            # Simpler approach without strict projection math:
+            # Let odc handle it. It usually picks the common CRS (UTM).
+        )
+        
+        # Load T1
+        ds_t1 = odc.stac.load(
+            [item_t1],
+            bands=["B04", "B03", "B02"],
+            bbox=bbox,
+            resolution=10,
+        )
+        
+        # 6. Convert to PIL Images
+        def process_ds(ds):
+            # ds is an xarray Dataset with bands B04, B03, B02
+            # Select first time step (should be only one)
+            if 'time' in ds.dims:
+                ds = ds.isel(time=0)
+            
+            # Stack to (H, W, 3)
+            # data is naturally (Band, y, x) or similar
+            # Convert to numpy
+            r = ds.B04.values.astype(np.float32)
+            g = ds.B03.values.astype(np.float32)
+            b = ds.B02.values.astype(np.float32)
+            
+            # Sentinel-2 L2A is 0-10000 (0-100% Surface Reflectance * 100 ? No 10000 = 1.0)
+            # Visualize with max 3000 (0.3 reflectance) for brightness
+            stack = np.stack([r, g, b], axis=-1)
+            stack = np.clip(stack / 3000.0 * 255.0, 0, 255).astype(np.uint8)
+            
+            # Resize to expected 512x512 if too small/big?
+            # The model might expect 512x512.
+            img = Image.fromarray(stack)
+            img = img.resize((width, height)) # Resize for consistency with model expectation
+            return img
+
+        img_t2_pil = process_ds(ds_t2)
+        img_t1_pil = process_ds(ds_t1)
+        
+        return img_t1_pil, img_t2_pil
+
+    except Exception as e:
+        import sys
+        sys.stderr.write(f"STAC Fetch Error: {e}\n")
+        return fetch_esri_or_synthetic(coordinates, width, height)
+
+def fetch_esri_or_synthetic(coordinates, width=512, height=512):
+    """
+    Fallback: Fetches from Esri World Imagery (same as before) or synthetic.
     """
     try:
-        # 1. Calculate Bounding Box
         if not coordinates:
-            # Default to some forest area if empty
-            min_lon, min_lat = -60, -5
-            max_lon, max_lat = -59.9, -4.9
-        else:
-            # Parse dict or list coords
-            lats = []
-            lons = []
-            for p in coordinates:
-                if isinstance(p, dict):
-                    lats.append(p.get('lat'))
-                    lons.append(p.get('lng'))
-                elif isinstance(p, list):
-                    lons.append(p[0]) # Assuming [lng, lat] or [lat, lng]?? MapComponent uses {lat, lng}
-                    lats.append(p[1])
+            return generate_synthetic_satellite_images(width, height)
             
-            if not lats: return generate_synthetic_satellite_images(width, height)
+        lats = []
+        lons = []
+        for p in coordinates:
+            if isinstance(p, dict):
+                lats.append(p.get('lat'))
+                lons.append(p.get('lng'))
+            elif isinstance(p, list):
+                lons.append(p[0])
+                lats.append(p[1])
+                
+        if not lats: return generate_synthetic_satellite_images(width, height)
 
-            min_lat, max_lat = min(lats), max(lats)
-            min_lon, max_lon = min(lons), max(lons)
+        min_lat, max_lat = min(lats), max(lats)
+        min_lon, max_lon = min(lons), max(lons)
         
-        # 2. Construct Esri Export URL
-        # We add some padding
         bbox = f"{min_lon},{min_lat},{max_lon},{max_lat}"
         
         url = (
@@ -201,50 +345,27 @@ def fetch_real_satellite_image(coordinates, width=512, height=512):
             f"?bbox={bbox}&bboxSR=4326&imageSR=4326&size={width},{height}&format=png&f=image"
         )
         
-        # 3. Fetch Image
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
             img_real = Image.open(BytesIO(response.content)).convert("RGB")
-            
-            # Since we only get one "current" image, we have to fake the "past" image 
-            # or assume the model is robust enough to spot deforestation on the current image
-            # IF the reference is clean forest.
-            # OPTION: Generate a green "restored" version of the real image as T1?
-            # Simpler: Use the real image as T2 (Current).
             img_t2 = img_real
-            
-            # For T1 (Past), we can try to "heal" the image by replacing brown/grey with green
-            # This is a naive heuristic but better than random noise.
-            # Or just return a standard full green synthetic image as T1 reference.
-            arr_t2 = np.array(img_real)
-            arr_t1 = arr_t2.copy()
-            
-            # "Heal" by shifting colors slightly towards green (naive)
-            # This essentially tells the model "Imagine this was fully green before".
-            # R, G, B
-            # Deforested is often brown (High R, Low G) or Grey.
-            # Forest is High G.
-            # Let's just create a synthetic "Before" that is pure texture like the synthetic generator
-            # but matching the color distribution of the "greenest" part of the real image.
-            
-            # Simplest fallback: Use synthetic forest for T1
+            # Synthetic fallback for T1 as before
             img_t1_synth, _ = generate_synthetic_satellite_images(width, height)
-            img_t1 = img_t1_synth
-            
-            return img_t1, img_t2
-            
+            return img_t1_synth, img_t2
         else:
-            print(f"Failed to fetch from Esri: {response.status_code}")
             return generate_synthetic_satellite_images(width, height)
-
     except Exception as e:
-        print(f"Error fetching real image: {e}")
+        import sys
+        sys.stderr.write(f"Fallback Error: {e}\n")
         return generate_synthetic_satellite_images(width, height)
 
 def analyze_area(model, input_data):
     # 1. Fetch Real Image (or generate synthetic if fetch fails)
     coordinates = input_data.get("coordinates", [])
-    img_t1, img_t2 = fetch_real_satellite_image(coordinates)
+    start_date = input_data.get("startDate")
+    end_date = input_data.get("endDate")
+    
+    img_t1, img_t2 = fetch_real_satellite_image(coordinates, start_date, end_date)
     
     # 2. Run Inference
     prediction_mask = run_inference(model, img_t1, img_t2)
