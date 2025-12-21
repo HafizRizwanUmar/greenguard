@@ -42,6 +42,37 @@ const MapComponent = ({ onAreaSelected, selectedArea, baseAOI, mapCenter, mapZoo
     const _onCreate = (e) => {
         const { layer } = e;
 
+        // Validation: Check if the drawn shape is strictly within the AOI
+        if (baseAOI && Array.isArray(baseAOI)) {
+            const bounds = layer.getBounds();
+            const ne = bounds.getNorthEast();
+            const sw = bounds.getSouthWest();
+            const nw = L.latLng(ne.lat, sw.lng);
+            const se = L.latLng(sw.lat, ne.lng);
+
+            // Convert baseAOI [{lat, lng}] to [[lat, lng]] for the helper
+            const aoiPolygon = baseAOI.map(p => [p.lat, p.lng]);
+
+            // Check all 4 corners
+            const corners = [
+                [ne.lat, ne.lng],
+                [nw.lat, nw.lng],
+                [se.lat, se.lng],
+                [sw.lat, sw.lng]
+            ];
+
+            const isInside = corners.every(point => isPointInPolygon(point, aoiPolygon));
+
+            if (!isInside) {
+                // Remove the invalid layer
+                if (featureGroupRef.current) {
+                    featureGroupRef.current.removeLayer(layer);
+                }
+                alert("Selection must be strictly within the highlighted Area of Interest.");
+                return;
+            }
+        }
+
         // Remove all other layers to enforce single polygon
         if (featureGroupRef.current) {
             featureGroupRef.current.clearLayers();
@@ -228,6 +259,22 @@ const MapComponent = ({ onAreaSelected, selectedArea, baseAOI, mapCenter, mapZoo
             </MapContainer>
         </div>
     );
+};
+
+// Ray-casting algorithm to check if point is in polygon
+// point: [lat, lng], vs: [[lat, lng], ...]
+function isPointInPolygon(point, vs) {
+    var x = point[0], y = point[1];
+    var inside = false;
+    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        var xi = vs[i][0], yi = vs[i][1];
+        var xj = vs[j][0], yj = vs[j][1];
+
+        var intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
 };
 
 export default MapComponent;
