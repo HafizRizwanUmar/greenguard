@@ -32,8 +32,10 @@ router.post('/analyze', async (req, res) => {
 
         pythonProcess.on('close', (code) => {
             if (code !== 0) {
-                console.error(`Python script exited with code ${code}: ${errorData}`);
-                return res.status(500).json({ msg: 'Analysis Failed', error: errorData });
+                console.error(`Python script exited with code ${code}:`);
+                console.error(`STDERR: ${errorData}`);
+                console.error(`STDOUT: ${resultData}`);
+                return res.status(500).json({ msg: 'Analysis Failed', error: errorData || resultData });
             }
             try {
                 const jsonResult = JSON.parse(resultData);

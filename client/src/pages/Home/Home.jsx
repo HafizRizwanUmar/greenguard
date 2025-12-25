@@ -237,18 +237,19 @@ const Home = () => {
             </section>
 
             {/* Parallax Earth/Space Image */}
-            <div className="fade-up-section relative w-full h-[60vh] md:h-[80vh] overflow-hidden group">
+            <div className="fade-up-section relative w-full h-[60vh] md:h-[80vh] overflow-hidden group bg-[#050505]">
+                <div className="absolute inset-0 bg-gradient-to-b from-[#0f172a] to-[#050505] z-0"></div>
                 <div className="absolute inset-0 bg-black/20 z-10 group-hover:bg-transparent transition-colors duration-700"></div>
                 <img
-                    src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop"
+                    src="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=2072&auto=format&fit=crop"
                     alt="Earth Horizon"
-                    className="w-full h-full object-cover transform scale-110 group-hover:scale-100 transition-transform duration-[2s] ease-out parallax-img"
+                    className="relative z-0 w-full h-full object-cover transform scale-110 group-hover:scale-100 transition-transform duration-[2s] ease-out parallax-img opacity-90"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505/50] z-20"></div>
             </div>
 
-            {/* Green Section */}
-            <section className="fade-up-section bg-[#ccff00] text-black py-32 px-6 relative overflow-hidden">
+            {/* Green Section - Analysis ID */}
+            <section id="analysis" className="fade-up-section bg-[#ccff00] text-black py-32 px-6 relative overflow-hidden">
                 {/* Rotating Badge */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 md:w-40 md:h-40 bg-black rounded-full flex items-center justify-center animate-[spin_10s_linear_infinite]">
                     <div className="text-[#ccff00] text-center text-[8px] font-bold uppercase tracking-widest absolute inset-2">
@@ -281,8 +282,8 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* Footer */}
-            <footer className="fade-up-section bg-[#020202] text-white pt-24 pb-12 px-6 border-t border-gray-900/50">
+            {/* Footer - Contact ID */}
+            <footer id="contact" className="fade-up-section bg-[#020202] text-white pt-24 pb-12 px-6 border-t border-gray-900/50">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-16">
 
                     {/* Left: Logo & Input */}

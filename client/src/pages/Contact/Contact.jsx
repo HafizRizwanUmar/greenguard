@@ -45,80 +45,85 @@ const Contact = () => {
     }
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-bg-body)' }}>
+        <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-bg-body)', color: 'var(--color-text-main)' }}>
             <Sidebar />
             <main style={{ marginLeft: '280px', flex: 1, padding: '32px' }}>
                 <div className="max-w-4xl mx-auto">
-                    <h1 className="text-3xl font-bold text-green-800 mb-6 text-center">Contact Authorities</h1>
-                    <div className="bg-white p-8 rounded-2xl shadow-lg">
-                        <p className="mb-6 text-gray-600 text-center">
+                    <h1 className="text-3xl font-serif font-bold text-[#ccff00] mb-6 text-center">Contact Authorities</h1>
+                    <div className="gg-card">
+                        <p className="mb-8 text-gray-400 text-center">
                             Report illegal deforestation, suggest improvements, or reach out to environmental agencies directly.
                         </p>
 
                         {status === 'success' && (
-                            <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">
+                            <div className="mb-6 p-4 bg-green-900/30 border border-green-500/50 text-green-400 rounded-lg text-center backdrop-blur-sm">
                                 Message sent successfully!
                             </div>
                         )}
 
                         {status === 'error' && (
-                            <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
+                            <div className="mb-6 p-4 bg-red-900/30 border border-red-500/50 text-red-400 rounded-lg text-center backdrop-blur-sm">
                                 Failed to send message. Please try again.
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Name</label>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div className="gg-input-group">
+                                    <label className="gg-input-label">Name</label>
                                     <input
                                         type="text"
                                         name="name"
                                         value={formData.name}
                                         onChange={handleChange}
                                         required
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
+                                        className="gg-input"
+                                        placeholder="Your Name"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                                <div className="gg-input-group">
+                                    <label className="gg-input-label">Email</label>
                                     <input
                                         type="email"
                                         name="email"
                                         value={formData.email}
                                         onChange={handleChange}
                                         required
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
+                                        className="gg-input"
+                                        placeholder="your@email.com"
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Subject</label>
+                            <div className="gg-input-group">
+                                <label className="gg-input-label">Subject</label>
                                 <input
                                     type="text"
                                     name="subject"
                                     value={formData.subject}
                                     onChange={handleChange}
                                     required
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
+                                    className="gg-input"
+                                    placeholder="Report Subject"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Message</label>
+                            <div className="gg-input-group">
+                                <label className="gg-input-label">Message</label>
                                 <textarea
                                     name="message"
                                     value={formData.message}
                                     onChange={handleChange}
                                     required
                                     rows="5"
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
+                                    className="gg-input"
+                                    placeholder="Describe the issue..."
                                 ></textarea>
                             </div>
 
                             <button
                                 type="submit"
                                 disabled={status === 'sending'}
-                                className={`w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition ${status === 'sending' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                className="gg-btn gg-btn-primary w-full justify-center"
+                                style={{ color: 'black' }}
                             >
                                 {status === 'sending' ? 'Sending...' : 'Send Message'}
                             </button>

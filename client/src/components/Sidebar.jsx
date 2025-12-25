@@ -48,7 +48,7 @@ const Sidebar = () => {
                 />
             )}
 
-            <div className={`gg-sidebar fixed left-0 top-0 h-screen w-[280px] bg-white flex flex-col z-[1000] shadow-2xl transition-transform duration-300 transform lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className={`gg-sidebar fixed left-0 top-0 h-screen w-[280px] flex flex-col z-[1000] shadow-2xl transition-transform duration-300 transform lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ borderRight: '1px solid rgba(255,255,255,0.05)' }}>
                 {/* Logo Section */}
                 <div style={{ padding: '32px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
@@ -62,14 +62,14 @@ const Sidebar = () => {
                             justifyContent: 'center',
                             boxShadow: '0 4px 12px rgba(5,150,105,0.4)'
                         }}>
-                            <Leaf size={20} color="white" />
+                            <Leaf size={20} color="black" />
                         </div>
                         <div>
                             <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, lineHeight: 1 }}>
-                                <span className="text-gray-800">Green</span>
+                                <span style={{ color: 'white' }}>Green</span>
                                 <span style={{ color: 'var(--color-primary)' }}>Guard</span>
                             </h1>
-                            <p style={{ margin: 0, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.5, marginTop: '4px' }}>Forest Monitor</p>
+                            <p style={{ margin: 0, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.5, marginTop: '4px', color: 'var(--color-text-muted)' }}>Forest Monitor</p>
                         </div>
                     </Link>
                 </div>
@@ -82,7 +82,7 @@ const Sidebar = () => {
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         letterSpacing: '0.1em',
-                        color: '#64748b',
+                        color: 'var(--color-text-muted)',
                         marginBottom: '16px'
                     }}>Menu</p>
                     {menuItems.map((item) => {
@@ -103,13 +103,13 @@ const Sidebar = () => {
                 </nav>
 
                 {/* User Section */}
-                <div style={{ padding: '24px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '12px',
                         padding: '12px',
-                        background: 'rgba(0,0,0,0.03)',
+                        background: 'rgba(255,255,255,0.03)',
                         borderRadius: '12px',
                         marginBottom: '16px'
                     }}>
@@ -123,13 +123,13 @@ const Sidebar = () => {
                             justifyContent: 'center',
                             fontWeight: 600,
                             fontSize: '0.875rem',
-                            color: 'white'
+                            color: 'black'
                         }}>
                             {user.name && user.name.charAt(0).toUpperCase()}
                         </div>
                         <div style={{ flex: 1, overflow: 'hidden' }}>
-                            <p className="text-gray-800" style={{ margin: 0, fontWeight: 500, fontSize: '0.875rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user.name}</p>
-                            <p className="text-gray-500" style={{ margin: 0, fontSize: '0.75rem', opacity: 0.8, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user.email}</p>
+                            <p className="text-white" style={{ margin: 0, fontWeight: 500, fontSize: '0.875rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user.name}</p>
+                            <p className="text-gray-400" style={{ margin: 0, fontSize: '0.75rem', opacity: 0.8, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user.email}</p>
                         </div>
                     </div>
 

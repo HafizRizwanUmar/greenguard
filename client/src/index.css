@@ -6,36 +6,36 @@
    ======================================== */
 
 :root {
-    /* Colors - Modern Ecological Palette */
-    --color-primary: #059669;
-    /* Emerald 600 */
-    --color-primary-dark: #047857;
-    /* Emerald 700 */
-    --color-primary-light: #34d399;
-    /* Emerald 400 */
-    --color-accent: #0ea5e9;
-    /* Sky 500 */
+    /* Colors - Modern Ecological Palette (Neon/Dark Mode) */
+    --color-primary: #ccff00;
+    /* Neon Lime */
+    --color-primary-dark: #b3e600;
+    /* Darker Lime */
+    --color-primary-light: #d9ff33;
+    /* Lighter Lime */
+    --color-accent: #ffffff;
+    /* White High Res */
 
-    --color-bg-body: #f8fafc;
-    /* Slate 50 */
-    --color-bg-card: #ffffff;
-    --color-bg-sidebar: #0f172a;
-    /* Slate 900 */
+    --color-bg-body: #050505;
+    /* Deep Black */
+    --color-bg-card: rgba(255, 255, 255, 0.05);
+    /* Glassy Dark */
+    --color-bg-sidebar: #0a0a0a;
+    /* Slightly lighter black */
 
-    --color-text-main: #1e293b;
-    /* Slate 800 */
-    --color-text-muted: #64748b;
-    /* Slate 500 */
-    --color-text-invert: #ffffff;
+    --color-text-main: #ffffff;
+    --color-text-muted: #94a3b8;
+    --color-text-invert: #000000;
 
     /* Typography */
     --font-main: 'Outfit', sans-serif;
+    --font-serif: 'Playfair Display', serif;
 
     /* Effects */
-    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --glass-effect: rgba(255, 255, 255, 0.7);
-    --glass-border: 1px solid rgba(255, 255, 255, 0.3);
+    --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+    --shadow-hover: 0 8px 32px 0 rgba(204, 255, 0, 0.2);
+    --glass-effect: rgba(255, 255, 255, 0.05);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 body {
@@ -46,6 +46,23 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+}
+
+input,
+button,
+textarea,
+select {
+    font-family: var(--font-main);
+}
+
 /* ========================================
    CUSTOM COMPONENT STYLES
    ======================================== */
@@ -53,11 +70,14 @@ body {
 /* Professional Card */
 .gg-card {
     background: var(--color-bg-card);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-radius: 16px;
     box-shadow: var(--shadow-card);
     padding: 24px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 1px solid rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+    border: var(--glass-border);
+    color: var(--color-text-main);
 }
 
 .gg-card:hover {

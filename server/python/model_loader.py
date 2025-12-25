@@ -13,7 +13,7 @@ def load_model(model_path):
     model = smp.DeepLabV3Plus(
         encoder_name="resnet18",
         encoder_weights=None, # Loading from local file
-        in_channels=6,
+        in_channels=8,
         classes=2
     )
 

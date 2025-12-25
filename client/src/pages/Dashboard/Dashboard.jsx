@@ -108,18 +108,19 @@ const Dashboard = () => {
     };
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-bg-body)' }}>
+        <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-bg-body)', color: 'var(--color-text-main)' }}>
             <Sidebar />
 
             <main style={{ marginLeft: '280px', flex: 1, display: 'flex', flexDirection: 'column', height: '100vh' }}>
                 {/* Header */}
                 <header style={{
                     background: 'var(--color-bg-card)',
+                    backdropFilter: 'blur(10px)',
                     padding: '16px 32px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    borderBottom: '1px solid rgba(0,0,0,0.05)',
+                    borderBottom: 'var(--glass-border)',
                     zIndex: 10
                 }}>
                     <div>
@@ -129,28 +130,28 @@ const Dashboard = () => {
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {/* Date Range Picker - Month/Year only */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '4px 8px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '8px', border: 'var(--glass-border)' }}>
                             <Calendar size={16} color="var(--color-text-muted)" />
                             <input
                                 type="month"
                                 value={startMonth}
                                 onChange={(e) => setStartMonth(e.target.value)}
-                                style={{ border: 'none', fontSize: '0.875rem', color: '#64748b', outline: 'none' }}
+                                style={{ border: 'none', background: 'transparent', fontSize: '0.875rem', color: 'var(--color-text-main)', outline: 'none' }}
                             />
-                            <span style={{ color: '#cbd5e1' }}>-</span>
+                            <span style={{ color: 'var(--color-text-muted)' }}>-</span>
                             <input
                                 type="month"
                                 value={endMonth}
                                 onChange={(e) => setEndMonth(e.target.value)}
-                                style={{ border: 'none', fontSize: '0.875rem', color: '#64748b', outline: 'none' }}
+                                style={{ border: 'none', background: 'transparent', fontSize: '0.875rem', color: 'var(--color-text-main)', outline: 'none' }}
                             />
                         </div>
 
-                        <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 8px' }}></div>
+                        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)', margin: '0 8px' }}></div>
 
                         <button
                             className="gg-btn gg-btn-primary"
-                            style={{ padding: '8px 16px', fontSize: '0.875rem' }}
+                            style={{ padding: '8px 16px', fontSize: '0.875rem', color: 'black' }}
                             onClick={handleAnalyze}
                             disabled={loading}
                         >
@@ -180,10 +181,11 @@ const Dashboard = () => {
                         <div style={{
                             width: '380px',
                             background: 'var(--color-bg-card)',
-                            borderLeft: '1px solid rgba(0,0,0,0.05)',
+                            backdropFilter: 'blur(10px)',
+                            borderLeft: 'var(--glass-border)',
                             padding: '24px',
                             overflowY: 'auto',
-                            boxShadow: '-4px 0 24px rgba(0,0,0,0.02)'
+                            boxShadow: '-4px 0 24px rgba(0,0,0,0.2)'
                         }}>
                             <ResultsPanel data={analysisResults} />
                         </div>
@@ -195,10 +197,11 @@ const Dashboard = () => {
                             right: '400px', // Left of sidebar
                             zIndex: 1000,
                             padding: '12px',
-                            background: '#fef2f2',
-                            border: '1px solid #fecaca',
+                            background: 'rgba(220, 38, 38, 0.1)',
+                            border: '1px solid #dc2626',
+                            backdropFilter: 'blur(4px)',
                             borderRadius: '8px',
-                            color: '#dc2626',
+                            color: '#ef4444',
                             fontSize: '0.875rem'
                         }}>
                             {error}
