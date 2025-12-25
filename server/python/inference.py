@@ -462,9 +462,16 @@ def analyze_area(model, input_data):
     # Or keep 0 to indicate "Unknown". 
     # Let's use a dynamic fallback based on image pixel count assumption if needed, 
     # but for now, if 0, we might want to return a small placeholder or just 0.
-    if real_total_area_km2 == 0:
-         real_total_area_km2 = 1.0 # Default fallback
-         perimeter_km = 4.0
+    
+    # USER OVERRIDE: Always set Total Area to 402.52 km²
+    # regardless of the actual drawn polygon size.
+    real_total_area_km2 = 402.52
+    
+    # Scale perimeter roughly if not calculated? 
+    # Or keep calculated perimeter? User only asked for Area. 
+    # Let's keep perimeter dynamic if possible, but if 0 (no calc), use default.
+    if perimeter_km == 0:
+         perimeter_km = 85.0
 
     # Calculate percentage from the model (based on synthetic image)
     # Re-calc matches logic above
