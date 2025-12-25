@@ -11,6 +11,7 @@ const Home = () => {
     const heroTextRef = useRef(null);
     const heroButtonRef = useRef(null);
     const bgGridRef = useRef(null);
+    const techSectionRef = useRef(null);
 
     useEffect(() => {
         const ctx = gsap.context(() => {
@@ -23,9 +24,7 @@ const Home = () => {
                 { opacity: 0.2, duration: 1.5, ease: "power2.out" }
             );
 
-            // 2. Text Reveal (Staggered words or lines)
-            // We'll target the chars or lines if we split them, 
-            // but for simplicity, let's animate the main headers
+            // 2. Text Reveal
             tl.fromTo(".hero-text-line",
                 { y: 100, opacity: 0, rotateX: -20 },
                 { y: 0, opacity: 1, rotateX: 0, duration: 1.2, stagger: 0.2, ease: "power4.out" },
@@ -55,6 +54,21 @@ const Home = () => {
                     }
                 );
             });
+
+            // Tech Cards Animation
+            gsap.fromTo(".tech-card",
+                { y: 100, opacity: 0 },
+                {
+                    y: 0,
+                    opacity: 1,
+                    duration: 0.8,
+                    stagger: 0.2,
+                    scrollTrigger: {
+                        trigger: techSectionRef.current,
+                        start: "top 70%",
+                    }
+                }
+            );
 
             // Parallax Effect for Background Elements
             gsap.to(".parallax-bg", {
@@ -95,7 +109,7 @@ const Home = () => {
                 </div>
 
                 <div className="hidden md:flex items-center gap-10 text-xs font-semibold tracking-widest uppercase text-gray-400">
-                    {['Services', 'Work', 'About', 'Blog', 'Careers'].map((item, i) => (
+                    {['Technology', 'Analysis', 'Mission', 'Contact'].map((item, i) => (
                         <a key={item} href={`#${item.toLowerCase()}`} className="hero-text-line opacity-0 hover:text-white transition-colors flex items-center gap-1">
                             {item}
                         </a>
@@ -114,15 +128,15 @@ const Home = () => {
 
                 <div ref={heroTextRef} className="z-20 transform-gpu">
                     <div className="overflow-hidden">
-                        <h1 className="hero-text-line text-6xl md:text-8xl lg:text-[9rem] font-bold leading-[0.85] tracking-tighter mix-blend-screen">
-                            Reach
+                        <h1 className="hero-text-line text-5xl md:text-7xl lg:text-[8rem] font-bold leading-[0.85] tracking-tighter mix-blend-screen">
+                            Preserving
                         </h1>
                     </div>
 
                     <div className="overflow-hidden">
-                        <h1 className="hero-text-line text-6xl md:text-8xl lg:text-[9rem] font-bold leading-[0.85] tracking-tighter">
+                        <h1 className="hero-text-line text-5xl md:text-7xl lg:text-[8rem] font-bold leading-[0.85] tracking-tighter">
                             <span className="font-serif italic font-normal text-[#ccff00] relative inline-block px-4 mx-2">
-                                New
+                                Earth
                                 {/* Simple SVG Orbit Ring */}
                                 <svg className="absolute inset-0 w-full h-full -scale-y-110 scale-x-125 pointer-events-none" viewBox="0 0 100 50" preserveAspectRatio="none">
                                     <path d="M5,25 C5,5 95,5 95,25 C95,45 5,45 5,25" fill="none" stroke="white" strokeWidth="0.5" className="opacity-60" />
@@ -134,28 +148,92 @@ const Home = () => {
                     </div>
 
                     <div className="overflow-hidden">
-                        <h1 className="hero-text-line text-6xl md:text-8xl lg:text-[9rem] font-bold leading-[0.85] tracking-tighter">
-                            Horizons
+                        <h1 className="hero-text-line text-5xl md:text-7xl lg:text-[8rem] font-bold leading-[0.85] tracking-tighter">
+                            With AI Precision
                         </h1>
                     </div>
 
                     <div ref={heroButtonRef} className="mt-16 opacity-0">
                         <Link to="/signup" className="group relative inline-flex items-center gap-3 px-8 py-4 bg-[#ccff00] text-black rounded-full text-sm font-bold uppercase tracking-widest hover:bg-white transition-all transform hover:scale-105 shadow-[0_0_40px_rgba(204,255,0,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.4)]">
-                            Get Started
+                            Start Analysis
                             <span className="group-hover:translate-x-1 transition-transform">→</span>
                         </Link>
                     </div>
                 </div>
             </header>
 
-            {/* Statement Section */}
-            <section className="fade-up-section py-32 px-6 max-w-5xl mx-auto text-center relative z-20">
+            {/* Mission Statement */}
+            <section id="mission" className="fade-up-section py-32 px-6 max-w-5xl mx-auto text-center relative z-20">
                 <p className="text-2xl md:text-4xl leading-tight font-light text-gray-200">
-                    GREENGUARD <span className="font-serif italic text-gray-500">is a full-service</span> STRATEGY, DETECTION <br />
-                    <span className="font-serif italic text-gray-500">and</span> MONITORING AGENCY <span className="font-serif italic text-gray-500">that helps</span> <br />
-                    EMERGING <span className="font-serif italic text-gray-500">and</span> ESTABLISHED BRANDS <br />
-                    GROW <span className="font-serif italic text-[#ccff00] font-semibold text-shadow-glow">FASTER.</span>
+                    GREENGUARD <span className="font-serif italic text-gray-500">utilizes advanced</span> SATELLITE SEGMENTATION <br />
+                    <span className="font-serif italic text-gray-500">to provide</span> REAL-TIME DEFORESTATION ALERTS <span className="font-serif italic text-gray-500">empowering</span> <br />
+                    GOVERNMENTS <span className="font-serif italic text-gray-500">and</span> NGOs <br />
+                    TO ACT <span className="font-serif italic text-[#ccff00] font-semibold text-shadow-glow">DECISIVELY.</span>
                 </p>
+            </section>
+
+            {/* Technology Section (Ensemble Predictor) */}
+            <section id="technology" ref={techSectionRef} className="relative py-24 px-6 max-w-7xl mx-auto">
+                <div className="text-center mb-16 fade-up-section">
+                    <span className="text-[#ccff00] font-bold uppercase tracking-widest text-xs mb-4 block">The Core Technology</span>
+                    <h2 className="text-4xl md:text-6xl font-serif mb-6">Ensemble Intelligence</h2>
+                    <p className="max-w-2xl mx-auto text-gray-400 text-lg">
+                        We don't rely on a single perspective. Our architecture fuses three state-of-the-art deep learning models to achieve an unprecedented level of accuracy.
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {/* Model 1 */}
+                    <div className="tech-card bg-white/5 border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-colors relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <span className="text-6xl font-bold">01</span>
+                        </div>
+                        <h3 className="text-2xl font-bold mb-2">DeepLabV3+</h3>
+                        <p className="text-[#ccff00] font-mono text-sm mb-6">Weight: 33.0%</p>
+                        <p className="text-gray-400 text-sm leading-relaxed mb-8">
+                            Utilizes Atrous Spatial Pyramid Pooling (ASPP) to capture multi-scale contextual information, ensuring no large-scale patterns are missed.
+                        </p>
+                        <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#ccff00]" style={{ width: '33.0%' }}></div>
+                        </div>
+                    </div>
+
+                    {/* Model 2 */}
+                    <div className="tech-card bg-white/5 border border-[#ccff00]/30 rounded-2xl p-8 hover:bg-white/10 transition-colors relative overflow-hidden group shadow-[0_0_30px_rgba(5,150,105,0.1)]">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <span className="text-6xl font-bold">02</span>
+                        </div>
+                        <h3 className="text-2xl font-bold mb-2">Attention U-Net</h3>
+                        <p className="text-[#ccff00] font-mono text-sm mb-6">Weight: 33.7%</p>
+                        <p className="text-gray-400 text-sm leading-relaxed mb-8">
+                            Integrates Attention Gates to suppress irrelevant regions and highlight salient features, providing superior focus on small details.
+                        </p>
+                        <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#ccff00]" style={{ width: '33.7%' }}></div>
+                        </div>
+                    </div>
+
+                    {/* Model 3 */}
+                    <div className="tech-card bg-white/5 border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-colors relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <span className="text-6xl font-bold">03</span>
+                        </div>
+                        <h3 className="text-2xl font-bold mb-2">U-Net++</h3>
+                        <p className="text-[#ccff00] font-mono text-sm mb-6">Weight: 33.3%</p>
+                        <p className="text-gray-400 text-sm leading-relaxed mb-8">
+                            Features nested and dense skip pathways to reduce the semantic gap between feature maps, improving gradient flow and segmentation accuracy.
+                        </p>
+                        <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#ccff00]" style={{ width: '33.3%' }}></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-16 text-center fade-up-section">
+                    <div className="inline-block bg-white/5 border border-white/10 px-8 py-4 rounded-xl font-mono text-sm text-gray-300">
+                        <span className="text-[#ccff00]">Prediction</span> = Σ (Model<span className="text-[10px] align-sub">i</span> × Weight<span className="text-[10px] align-sub">i</span>)
+                    </div>
+                </div>
             </section>
 
             {/* Parallax Earth/Space Image */}
@@ -174,7 +252,7 @@ const Home = () => {
                 {/* Rotating Badge */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 md:w-40 md:h-40 bg-black rounded-full flex items-center justify-center animate-[spin_10s_linear_infinite]">
                     <div className="text-[#ccff00] text-center text-[8px] font-bold uppercase tracking-widest absolute inset-2">
-                        • Optimize • Strategy • Grow • Minimize
+                        • Analyze • Protect • Restore • Monitor
                     </div>
                     <div className="w-24 h-24 border border-[#ccff00]/30 rounded-full flex items-center justify-center">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccff00" strokeWidth="1.5">
@@ -185,11 +263,11 @@ const Home = () => {
                 </div>
 
                 <div className="max-w-4xl mx-auto text-center mt-12">
-                    <p className="text-xs font-bold uppercase tracking-widest mb-6 border-b border-black/10 inline-block pb-2">Let's Orbit</p>
+                    <p className="text-xs font-bold uppercase tracking-widest mb-6 border-b border-black/10 inline-block pb-2">Join the Guardians</p>
                     <h2 className="text-4xl md:text-7xl font-serif leading-tight">
-                        Let us help your company <br />
-                        accelerate <span className="italic relative inline-block">
-                            years ahead.
+                        Start monitoring <br />
+                        your region <span className="italic relative inline-block">
+                            today.
                             <svg className="absolute bottom-0 left-0 w-full h-3" viewBox="0 0 100 10" preserveAspectRatio="none">
                                 <path d="M0 5 Q 50 10 100 5 scale(1, -1)" stroke="black" strokeWidth="2" fill="none" />
                             </svg>
@@ -197,7 +275,7 @@ const Home = () => {
                     </h2>
                     <div className="mt-16">
                         <Link to="/contact" className="inline-block px-10 py-4 border-2 border-black rounded-full text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-[#ccff00] transition-all transform hover:-translate-y-1 hover:shadow-xl">
-                            Contact Us
+                            Deploy Models
                         </Link>
                     </div>
                 </div>
@@ -213,7 +291,7 @@ const Home = () => {
                             GreenGuard
                         </div>
                         <h3 className="text-2xl md:text-4xl font-serif mb-8 leading-snug">
-                            Sign up to harness the <br /> power of <span className="text-[#ccff00]">GreenGuard.</span>
+                            Sign up for <br /> global <span className="text-[#ccff00]">insights.</span>
                         </h3>
                         <div className="flex gap-4 max-w-md group">
                             <input type="email" placeholder="Email Address" className="flex-1 bg-transparent border-b border-gray-700 px-4 py-3 text-sm focus:border-[#ccff00] outline-none transition-colors placeholder:text-gray-600" />
@@ -226,16 +304,16 @@ const Home = () => {
                     {/* Right: Links */}
                     <div className="flex gap-16 text-sm text-gray-400">
                         <div className="flex flex-col gap-6">
-                            <span className="text-white font-bold uppercase tracking-widest text-xs mb-2 text-[#ccff00]">Services</span>
-                            <a href="#" className="hover:text-white hover:translate-x-1 transition-all">Real-time Analysis</a>
-                            <a href="#" className="hover:text-white hover:translate-x-1 transition-all">Deforestation Alerts</a>
-                            <a href="#" className="hover:text-white hover:translate-x-1 transition-all">Carbon Reporting</a>
+                            <span className="text-white font-bold uppercase tracking-widest text-xs mb-2 text-[#ccff00]">Platform</span>
+                            <a href="#" className="hover:text-white hover:translate-x-1 transition-all">Ensemble Models</a>
+                            <a href="#" className="hover:text-white hover:translate-x-1 transition-all">Segmentation</a>
+                            <a href="#" className="hover:text-white hover:translate-x-1 transition-all">API Access</a>
                         </div>
                         <div className="flex flex-col gap-6">
                             <span className="text-white font-bold uppercase tracking-widest text-xs mb-2 text-[#ccff00]">Company</span>
-                            <a href="#" className="hover:text-white hover:translate-x-1 transition-all">Services</a>
-                            <a href="#" className="hover:text-white hover:translate-x-1 transition-all">Work</a>
                             <a href="#" className="hover:text-white hover:translate-x-1 transition-all">About</a>
+                            <a href="#" className="hover:text-white hover:translate-x-1 transition-all">Research</a>
+                            <a href="#" className="hover:text-white hover:translate-x-1 transition-all">Contact</a>
                         </div>
                     </div>
                 </div>
