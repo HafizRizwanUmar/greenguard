@@ -44,7 +44,7 @@ const Login = () => {
             {/* Left Side - Branding */}
             <div style={{
                 flex: '1',
-                background: 'linear-gradient(135deg, var(--color-primary-dark), var(--color-primary))',
+                background: 'linear-gradient(135deg, var(--color-bg-sidebar), #000000)',
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
