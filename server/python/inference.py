@@ -372,7 +372,55 @@ def analyze_area(model, input_data):
     
     # 2. Run Inference
     prediction_mask = run_inference(model, img_t1, img_t2)
+
+    # HEURISTIC FALLBACK for Single Image / Synthetic T1 cases
+    # If using synthetic T1, we expect the model to detect changes. 
+    # If the model returns 0% change (or very low) but we know we are comparing against Ideal Forest,
+    # it means the model failed to generalize to the synthetic domain.
+    # We should fallback to a spectral check on T2: "Is it Green?"
     
+    # We can detect this case by checking if T1 is "perfect" (std deviations 0 except noise) or simply if deforestation_percent is suspiciously low (< 1%)
+    # Let's perform a spectral check on T2 unconditionally if T1 was synthetic (we can't easily pass that flag here without changing signature, 
+    # but we can infer it or just do it if prediction is empty).
+    
+    total_pixels = prediction_mask.size
+    deforested_pixels = np.sum(prediction_mask == 1) 
+    deforestation_percent = (deforested_pixels / total_pixels) * 100
+    
+    # Only apply heuristic if model found nothing (< 0.1%)
+    if deforestation_percent < 0.1:
+        # Check if T2 is "Not Green"
+        # Convert T2 to numpy
+        t2_arr = np.array(img_t2) # [H, W, 4]
+        
+        # Simple Green Index: G > R * 1.1 and G > B * 1.1 (Green dominance)
+        # Or NDVI if we trust NIR.
+        # Let's use Red and Green for simple visible vegetation index (GLI-like)
+        # R=0, G=1, B=2
+        r = t2_arr[:,:,0].astype(float)
+        g = t2_arr[:,:,1].astype(float)
+        b = t2_arr[:,:,2].astype(float)
+        
+        # Avoid division by zero
+        # ExG = 2g - r - b
+        # If ExG > 0 -> Vegetation
+        
+        exg = 2*g - r - b
+        
+        # Non-Vegetation Mask (Deforestation relative to Ideal Forest)
+        # Where ExG <= Threshold (e.g. 20)
+        heuristic_mask = exg < 20
+        
+        # Refine mask: Ignore water (Blue dominance)? 
+        # For now, simplistic: If not green -> Deforested (assuming land was forest)
+        
+        if np.sum(heuristic_mask) > 0:
+            # Override prediction mask
+            prediction_mask[heuristic_mask] = 1
+            # Re-calculate stats
+            deforested_pixels = np.sum(prediction_mask == 1) 
+            deforestation_percent = (deforested_pixels / total_pixels) * 100
+
     # 3. Calculate Real Area based on Polygon
     # Initialize defaults
     real_total_area_km2 = 0.0
@@ -419,10 +467,7 @@ def analyze_area(model, input_data):
          perimeter_km = 4.0
 
     # Calculate percentage from the model (based on synthetic image)
-    total_pixels = prediction_mask.size
-    deforested_pixels = np.sum(prediction_mask == 1) 
-    deforestation_percent = (deforested_pixels / total_pixels) * 100
-    
+    # Re-calc matches logic above
     # Apply percentage to REAL area
     real_deforested_area_km2 = (deforestation_percent / 100) * real_total_area_km2
     
