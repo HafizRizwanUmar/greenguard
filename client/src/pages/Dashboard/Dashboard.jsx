@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { analyzeArea } from '../../api';
 import Sidebar from '../../components/Sidebar';
 import MapComponent from '../../components/Map/MapComponent';
 import ResultsPanel from '../../components/Dashboard/ResultsPanel';
-import { RefreshCcw, Calendar, Search } from 'lucide-react';
+import { RefreshCcw, XCircle, Calendar } from 'lucide-react';
 
 const Dashboard = () => {
-    // State with Persistence
-    // Hardcoded Area of Interest (AOI)
-    // Format: [Lng, Lat] as provided by user, needs conversion to [Lat, Lng] for Leaflet
+    const location = useLocation();
+
+    // --- State: Area ---
     const AOI_COORDINATES = [
         [72.83006459906208, 33.75992197053082],
         [72.81392842962849, 33.713955521176736],
@@ -20,61 +21,76 @@ const Dashboard = () => {
         [73.32356524976677, 33.81731322240773],
         [73.27481341871209, 33.861798796957075],
         [72.83006459906208, 33.75992197053082]
-    ].map(coord => ({ lng: coord[0], lat: coord[1] })); // Convert to object for easier handling
+    ].map(coord => ({ lng: coord[0], lat: coord[1] }));
 
-    // Initial Area State - AOI is the base, selectedArea is the user's sub-selection
-    // On load, selectedArea is the whole AOI.
     const [selectedArea, setSelectedArea] = useState(AOI_COORDINATES);
     const [baseAOI] = useState(AOI_COORDINATES);
+    const [mapCenter, setMapCenter] = useState([33.75, 73.0]);
+    const [mapZoom, setMapZoom] = useState(11);
 
+    // --- State: Data & UI ---
     const [analysisResults, setAnalysisResults] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const abortControllerRef = useRef(null);
 
-    // Date State - Month/Year only
-    const [startMonth, setStartMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
-    const [endMonth, setEndMonth] = useState(new Date().toISOString().slice(0, 7));   // YYYY-MM
+    // --- State: Date Selection (Strict 6-month intervals) ---
+    // Years: 2017 - 2025
+    const availableYears = Array.from({ length: 9 }, (_, i) => 2017 + i);
+    const [selectedYear, setSelectedYear] = useState(2023);
+    const [selectedPeriod, setSelectedPeriod] = useState('jan-jun'); // 'jan-jun' or 'jul-dec'
 
-    // Map View State - Center on AOI roughly
-    const [mapCenter, setMapCenter] = useState([33.75, 73.0]); // Centroid approx
-    const [mapZoom, setMapZoom] = useState(11);
-
-    // Persistence Effects
-    // Removed persistence for manual stuff since we hardcode AOI now
+    useEffect(() => {
+        if (location.state && location.state.coordinates) {
+            setSelectedArea(location.state.coordinates);
+            if (location.state.coordinates.ne && location.state.coordinates.sw) {
+                const lat = (location.state.coordinates.ne.lat + location.state.coordinates.sw.lat) / 2;
+                const lng = (location.state.coordinates.ne.lng + location.state.coordinates.sw.lng) / 2;
+                setMapCenter([lat, lng]);
+                setMapZoom(13);
+            }
+        }
+    }, [location.state]);
 
     const handleAreaSelected = (coordinates) => {
-        // Just update if user draws something else, but we prefer valid AOI
-        // In this specific request, user wants AOI.
-        // If we want to allow user to draw *within* AOI or new AOI, we keep this.
-        // But user said "Create polygon it still stuck on 26km", implies they draw. 
-        // AND "use these AOI Coordinates".
-        // I will initialize with AOI. If they draw, we use drawn.
         setSelectedArea(coordinates);
     };
 
-    const handleAnalyze = async () => {
-        // Validation: Prevent analysis if dates are the same
-        if (startMonth === endMonth) {
-            alert("Please select different months for the Start and End date to allow the system to detect changes over time.");
-            return;
+    const handleCancelAnalysis = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+            setLoading(false);
+            setError("Analysis cancelled by user.");
         }
+    };
 
+    const handleAnalyze = async () => {
         setLoading(true);
         setError(null);
         setAnalysisResults(null);
 
-        try {
-            // If selectedArea is the array (AOI), use it directly. 
-            // If it's the object from Draw tool (ne/sw bounds), we need to pass that too, 
-            // but backend `inference.py` expects a list of points or bounds? 
-            // My updated inference.py handles list of objects {lat, lng} or list of arrays.
+        abortControllerRef.current = new AbortController();
 
-            // Normalize selectedArea to list of points for backend
+        // Calculate strict start/end dates
+        const startMonth = selectedPeriod === 'jan-jun' ? '01' : '07';
+        const endMonth = selectedPeriod === 'jan-jun' ? '06' : '12';
+        const startDate = `${selectedYear}-${startMonth}-01`;
+
+        // End date calculation (approximate end of month/period)
+        // For Jan-Jun: Ends Jun 30
+        // For Jul-Dec: Ends Dec 31
+        const endDate = selectedPeriod === 'jan-jun'
+            ? `${selectedYear}-06-30`
+            : `${selectedYear}-12-31`;
+
+        console.log(`Analyzing for period: ${startDate} to ${endDate}`);
+
+        try {
             let coordinatesToSend = [];
             if (Array.isArray(selectedArea)) {
-                coordinatesToSend = selectedArea; // Already [{lat, lng}, ...]
+                coordinatesToSend = selectedArea;
             } else if (selectedArea && selectedArea.ne && selectedArea.sw) {
-                // It's a box (Leaflet Draw Rectangle)
                 coordinatesToSend = [
                     { lat: selectedArea.ne.lat, lng: selectedArea.sw.lng },
                     { lat: selectedArea.ne.lat, lng: selectedArea.ne.lng },
@@ -83,16 +99,16 @@ const Dashboard = () => {
                     { lat: selectedArea.ne.lat, lng: selectedArea.sw.lng }
                 ];
             } else {
-                // Fallback or complex polygon from draw (if featureGroup wired differently)
-                // For now, assuming Rectangle draw from previous MapComponent
                 coordinatesToSend = AOI_COORDINATES;
             }
 
             const { data } = await analyzeArea({
                 coordinates: coordinatesToSend,
-                startDate: `${startMonth}-01`,
-                endDate: `${endMonth}-28` // Approximate end of month
+                startDate: startDate,
+                endDate: endDate
             });
+
+            if (!abortControllerRef.current) return;
 
             if (data.status === 'success') {
                 setAnalysisResults(data);
@@ -100,10 +116,17 @@ const Dashboard = () => {
                 setError(data.message || "Analysis failed");
             }
         } catch (err) {
-            console.error(err);
-            setError("Analysis failed. Please try again.");
+            if (err.name === 'CanceledError' || !abortControllerRef.current) {
+                console.log('Request canceled');
+            } else {
+                console.error(err);
+                setError("Analysis failed. Please try again.");
+            }
         } finally {
-            setLoading(false);
+            if (abortControllerRef.current) {
+                setLoading(false);
+                abortControllerRef.current = null;
+            }
         }
     };
 
@@ -128,36 +151,64 @@ const Dashboard = () => {
                         <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '4px' }}>Monitor deforestation in real-time</p>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {/* Date Range Picker - Month/Year only */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '8px', border: 'var(--glass-border)' }}>
-                            <Calendar size={16} color="var(--color-text-muted)" />
-                            <input
-                                type="month"
-                                value={startMonth}
-                                onChange={(e) => setStartMonth(e.target.value)}
-                                style={{ border: 'none', background: 'transparent', fontSize: '0.875rem', color: 'var(--color-text-main)', outline: 'none' }}
-                            />
-                            <span style={{ color: 'var(--color-text-muted)' }}>-</span>
-                            <input
-                                type="month"
-                                value={endMonth}
-                                onChange={(e) => setEndMonth(e.target.value)}
-                                style={{ border: 'none', background: 'transparent', fontSize: '0.875rem', color: 'var(--color-text-main)', outline: 'none' }}
-                            />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+
+                        {/* 6-Month Interval Selection */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                                <Calendar size={16} className="text-gray-500" />
+                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Year</span>
+                                <select
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                    className="bg-transparent border-none outline-none font-medium text-sm text-gray-800 cursor-pointer hover:text-green-600 transition-colors"
+                                >
+                                    {availableYears.map(year => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Period</span>
+                                <select
+                                    value={selectedPeriod}
+                                    onChange={(e) => setSelectedPeriod(e.target.value)}
+                                    className="bg-transparent border-none outline-none font-medium text-sm text-gray-800 cursor-pointer hover:text-green-600 transition-colors"
+                                >
+                                    <option value="jan-jun">Jan — Jun (1st Half)</option>
+                                    <option value="jul-dec">Jul — Dec (2nd Half)</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)', margin: '0 8px' }}></div>
+                        <div style={{ width: '1px', height: '24px', background: '#e2e8f0' }}></div>
 
-                        <button
-                            className="gg-btn gg-btn-primary"
-                            style={{ padding: '8px 16px', fontSize: '0.875rem', color: 'black' }}
-                            onClick={handleAnalyze}
-                            disabled={loading}
-                        >
-                            <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
-                            <span>{loading ? "Analyzing..." : "Run Analysis"}</span>
-                        </button>
+                        {loading ? (
+                            <button
+                                className="gg-btn"
+                                style={{
+                                    padding: '10px 20px',
+                                    fontSize: '0.9rem',
+                                    color: '#ef4444',
+                                    background: '#fef2f2',
+                                    border: '1px solid #fee2e2'
+                                }}
+                                onClick={handleCancelAnalysis}
+                            >
+                                <XCircle size={18} />
+                                <span>Cancel</span>
+                            </button>
+                        ) : (
+                            <button
+                                className="gg-btn gg-btn-primary"
+                                style={{ padding: '10px 20px', fontSize: '0.9rem', color: 'black' }}
+                                onClick={handleAnalyze}
+                            >
+                                <RefreshCcw size={18} />
+                                <span>Run Analysis</span>
+                            </button>
+                        )}
                     </div>
                 </header>
 
@@ -172,8 +223,6 @@ const Dashboard = () => {
                             mapCenter={mapCenter}
                             mapZoom={mapZoom}
                         />
-
-
                     </div>
 
                     {/* Results Sidebar */}
@@ -197,12 +246,13 @@ const Dashboard = () => {
                             right: '400px', // Left of sidebar
                             zIndex: 1000,
                             padding: '12px',
-                            background: 'rgba(220, 38, 38, 0.1)',
-                            border: '1px solid #dc2626',
+                            background: '#fef2f2',
+                            border: '1px solid #ef4444',
                             backdropFilter: 'blur(4px)',
                             borderRadius: '8px',
                             color: '#ef4444',
-                            fontSize: '0.875rem'
+                            fontSize: '0.875rem',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                         }}>
                             {error}
                         </div>

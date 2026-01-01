@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
-import { Eye, Download, X, MapPin, Calendar, TrendingDown, Trees, AlertTriangle, CheckCircle, Clock, BarChart3, Leaf, Target } from 'lucide-react';
+import { Eye, Download, X, MapPin, Calendar, TrendingDown, Trees, AlertTriangle, CheckCircle, Clock, BarChart3, Leaf, Target, Trash2, Share2, RefreshCw } from 'lucide-react';
 import { fetchReports } from '../../api';
+import api from '../../api'; // For delete
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -10,6 +12,7 @@ const History = () => {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedReport, setSelectedReport] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const loadReports = async () => {
@@ -25,6 +28,43 @@ const History = () => {
         };
         loadReports();
     }, []);
+
+    const handleDelete = async (id, e) => {
+        e.stopPropagation();
+        if (window.confirm("Are you sure you want to delete this report?")) {
+            try {
+                await api.delete(`/reports/${id}`);
+                setReports(reports.filter(r => r._id !== id));
+            } catch (err) {
+                console.error("Failed to delete", err);
+                alert("Failed to delete report");
+            }
+        }
+    };
+
+    const handleShare = (report, e) => {
+        e.stopPropagation();
+        navigate('/contact', {
+            state: {
+                reportId: report._id,
+                areaName: report.areaName,
+                stats: `Forest: ${report.totalForestArea}km², Deforested: ${report.deforestationPercent}%`,
+                isShare: true
+            }
+        });
+    };
+
+    const handleUpdate = (report, e) => {
+        e.stopPropagation();
+        // Redirect to dashboard with coordinates to run analysis again
+        alert("Redirecting to Dashboard to run new analysis for this area...");
+        navigate('/dashboard', {
+            state: {
+                coordinates: report.coordinates,
+                mode: 'update'
+            }
+        });
+    };
 
     // Get risk level based on deforestation percentage
     const getRiskLevel = (percent) => {
@@ -326,13 +366,6 @@ const History = () => {
                                             }
                                         </p>
                                     </div>
-
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <span className={`w-2 h-2 rounded-full ${report.isSubscribedToMonthlyUpdates ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                                        <span className="text-gray-600">
-                                            {report.isSubscribedToMonthlyUpdates ? 'Monthly updates enabled' : 'Monthly updates disabled'}
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -396,12 +429,14 @@ const History = () => {
                                         <td className="px-6 py-4">
                                             <div>
                                                 <p className="font-medium text-green-900">{report.areaName || 'Untitled Area'}</p>
-                                                <p className="text-xs text-gray-400 mt-0.5">Lat/Lng via Map</p>
+                                                <p className="text-xs text-gray-400 mt-0.5">Lat: {report.coordinates?.ne?.lat.toFixed(2)}, Lng: {report.coordinates?.ne?.lng.toFixed(2)}</p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-gray-600">{new Date(report.createdAt).toLocaleDateString()}</td>
                                         <td className="px-6 py-4">
-                                            <span className="text-red-600 font-semibold">{report.deforestationPercent}%</span>
+                                            <span className={`font-semibold ${report.deforestationPercent >= 30 ? 'text-red-600' : 'text-green-600'}`}>
+                                                {report.deforestationPercent}%
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
@@ -413,11 +448,25 @@ const History = () => {
                                                     <Eye size={16} />
                                                 </button>
                                                 <button
-                                                    onClick={() => generatePDF(report)}
-                                                    className="p-2 rounded-lg hover:bg-green-100 text-green-600 transition-all"
-                                                    title="Download PDF"
+                                                    onClick={(e) => handleUpdate(report, e)}
+                                                    className="p-2 rounded-lg hover:bg-blue-100 text-blue-600 transition-all"
+                                                    title="Monthly Update"
                                                 >
-                                                    <Download size={16} />
+                                                    <RefreshCw size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => handleShare(report, e)}
+                                                    className="p-2 rounded-lg hover:bg-indigo-100 text-indigo-600 transition-all"
+                                                    title="Share Result"
+                                                >
+                                                    <Share2 size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => handleDelete(report._id, e)}
+                                                    className="p-2 rounded-lg hover:bg-red-100 text-red-600 transition-all"
+                                                    title="Delete Report"
+                                                >
+                                                    <Trash2 size={16} />
                                                 </button>
                                             </div>
                                         </td>

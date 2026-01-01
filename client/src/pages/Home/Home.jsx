@@ -154,7 +154,7 @@ const Home = () => {
                     </div>
 
                     <div ref={heroButtonRef} className="mt-16 opacity-0">
-                        <Link to="/signup" className="group relative inline-flex items-center gap-3 px-8 py-4 bg-[#ccff00] text-black rounded-full text-sm font-bold uppercase tracking-widest hover:bg-white transition-all transform hover:scale-105 shadow-[0_0_40px_rgba(204,255,0,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.4)]">
+                        <Link to="/login" className="group relative inline-flex items-center gap-3 px-8 py-4 bg-[#ccff00] text-black rounded-full text-sm font-bold uppercase tracking-widest hover:bg-white transition-all transform hover:scale-105 shadow-[0_0_40px_rgba(204,255,0,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.4)]">
                             Start Analysis
                             <span className="group-hover:translate-x-1 transition-transform">→</span>
                         </Link>

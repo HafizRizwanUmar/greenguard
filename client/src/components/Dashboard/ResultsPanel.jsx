@@ -87,10 +87,16 @@ const ResultsPanel = ({ data }) => {
     // Handlers
     const handleSaveReport = async () => {
         if (!hasData) return;
+
+        const userProvidedName = window.prompt("Enter a name for this area (e.g., 'North District Zone A')");
+        if (userProvidedName === null) return; // Cancelled
+
+        const areaName = userProvidedName.trim() || `Analysis - ${new Date().toLocaleDateString()}`;
+
         try {
             await api.post('/reports', {
-                areaName: `Analysis - ${new Date().toLocaleDateString()}`,
-                coordinates: { lat: 0, lng: 0 }, // Placeholder
+                areaName: areaName,
+                coordinates: { lat: 0, lng: 0 }, // Placeholder or actual coordinates if available in props
                 startDate: new Date(),
                 endDate: new Date(),
                 totalForestArea: data.totalForestArea,

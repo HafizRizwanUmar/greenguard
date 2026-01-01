@@ -112,4 +112,32 @@ router.put('/:id', auth, async (req, res) => {
     }
 });
 
+// @route   DELETE api/reports/:id
+// @desc    Delete a report
+// @access  Private
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        const report = await AnalysisReport.findById(req.params.id);
+
+        if (!report) {
+            return res.status(404).json({ msg: 'Report not found' });
+        }
+
+        // Check user
+        if (report.userId.toString() !== req.user.id) {
+            return res.status(401).json({ msg: 'User not authorized' });
+        }
+
+        await report.deleteOne();
+
+        res.json({ msg: 'Report removed' });
+    } catch (err) {
+        console.error(err.message);
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json({ msg: 'Report not found' });
+        }
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

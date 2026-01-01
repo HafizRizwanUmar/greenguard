@@ -32,11 +32,7 @@ function App() {
                             <History />
                         </PrivateRoute>
                     } />
-                    <Route path="/community" element={
-                        <PrivateRoute>
-                            <Community />
-                        </PrivateRoute>
-                    } />
+
                     <Route path="/news" element={
                         <PrivateRoute>
                             <News />

@@ -152,17 +152,29 @@ const Login = () => {
                     </form>
 
                     <div style={{ marginTop: '32px', textAlign: 'center', paddingTop: '24px', borderTop: '1px solid #f1f5f9' }}>
-                        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
+                        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem', marginBottom: '12px' }}>
                             Don't have an account?{' '}
                             <Link
                                 to="/signup"
                                 style={{
-                                    color: 'var(--color-primary)',
+                                    color: 'var(--color-primary-dark)',
                                     fontWeight: 600,
                                     textDecoration: 'none'
                                 }}
                             >
                                 Create Account
+                            </Link>
+                        </p>
+                        <p style={{ fontSize: '0.85rem' }}>
+                            <Link
+                                to="#"
+                                style={{
+                                    color: 'var(--color-text-muted)',
+                                    textDecoration: 'underline',
+                                    opacity: 0.8
+                                }}
+                            >
+                                Admin Login
                             </Link>
                         </p>
                     </div>
