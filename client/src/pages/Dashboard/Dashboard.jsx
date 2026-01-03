@@ -37,8 +37,11 @@ const Dashboard = () => {
     // --- State: Date Selection (Strict 6-month intervals) ---
     // Years: 2017 - 2025
     const availableYears = Array.from({ length: 9 }, (_, i) => 2017 + i);
-    const [selectedYear, setSelectedYear] = useState(2023);
-    const [selectedPeriod, setSelectedPeriod] = useState('jan-jun'); // 'jan-jun' or 'jul-dec'
+    const [startYear, setStartYear] = useState(2020);
+    const [startPeriod, setStartPeriod] = useState('jan-jun'); // 'jan-jun' or 'jul-dec'
+
+    const [endYear, setEndYear] = useState(2023);
+    const [endPeriod, setEndPeriod] = useState('jul-dec');
 
     useEffect(() => {
         if (location.state && location.state.coordinates) {
@@ -73,18 +76,17 @@ const Dashboard = () => {
         abortControllerRef.current = new AbortController();
 
         // Calculate strict start/end dates
-        const startMonth = selectedPeriod === 'jan-jun' ? '01' : '07';
-        const endMonth = selectedPeriod === 'jan-jun' ? '06' : '12';
-        const startDate = `${selectedYear}-${startMonth}-01`;
+        // Calculate Date Range 1 (Start)
+        const startMonth1 = startPeriod === 'jan-jun' ? '01' : '07';
+        const startDate1 = `${startYear}-${startMonth1}-01`;
+        const endDate1 = startPeriod === 'jan-jun' ? `${startYear}-06-30` : `${startYear}-12-31`;
 
-        // End date calculation (approximate end of month/period)
-        // For Jan-Jun: Ends Jun 30
-        // For Jul-Dec: Ends Dec 31
-        const endDate = selectedPeriod === 'jan-jun'
-            ? `${selectedYear}-06-30`
-            : `${selectedYear}-12-31`;
+        // Calculate Date Range 2 (End)
+        const startMonth2 = endPeriod === 'jan-jun' ? '01' : '07';
+        const startDate2 = `${endYear}-${startMonth2}-01`;
+        const endDate2 = endPeriod === 'jan-jun' ? `${endYear}-06-30` : `${endYear}-12-31`;
 
-        console.log(`Analyzing for period: ${startDate} to ${endDate}`);
+        console.log(`Analyzing comparison: ${startDate1} - ${endDate1} VS ${startDate2} - ${endDate2}`);
 
         try {
             let coordinatesToSend = [];
@@ -104,8 +106,14 @@ const Dashboard = () => {
 
             const { data } = await analyzeArea({
                 coordinates: coordinatesToSend,
-                startDate: startDate,
-                endDate: endDate
+                range1: {
+                    startDate: startDate1,
+                    endDate: endDate1
+                },
+                range2: {
+                    startDate: startDate2,
+                    endDate: endDate2
+                }
             });
 
             if (!abortControllerRef.current) return;
@@ -154,31 +162,66 @@ const Dashboard = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
 
                         {/* 6-Month Interval Selection */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
-                                <Calendar size={16} className="text-gray-500" />
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Year</span>
-                                <select
-                                    value={selectedYear}
-                                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                                    className="bg-transparent border-none outline-none font-medium text-sm text-gray-800 cursor-pointer hover:text-green-600 transition-colors"
-                                >
-                                    {availableYears.map(year => (
-                                        <option key={year} value={year}>{year}</option>
-                                    ))}
-                                </select>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+
+                            {/* Start Date Group */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Start Date</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                                        <Calendar size={14} className="text-gray-500" />
+                                        <select
+                                            value={startYear}
+                                            onChange={(e) => setStartYear(parseInt(e.target.value))}
+                                            className="bg-transparent border-none outline-none font-medium text-sm text-gray-800 cursor-pointer hover:text-green-600 transition-colors"
+                                        >
+                                            {availableYears.map(year => (
+                                                <option key={year} value={year}>{year}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                                        <select
+                                            value={startPeriod}
+                                            onChange={(e) => setStartPeriod(e.target.value)}
+                                            className="bg-transparent border-none outline-none font-medium text-sm text-gray-800 cursor-pointer hover:text-green-600 transition-colors"
+                                        >
+                                            <option value="jan-jun">Jan-Jun</option>
+                                            <option value="jul-dec">Jul-Dec</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Period</span>
-                                <select
-                                    value={selectedPeriod}
-                                    onChange={(e) => setSelectedPeriod(e.target.value)}
-                                    className="bg-transparent border-none outline-none font-medium text-sm text-gray-800 cursor-pointer hover:text-green-600 transition-colors"
-                                >
-                                    <option value="jan-jun">Jan — Jun (1st Half)</option>
-                                    <option value="jul-dec">Jul — Dec (2nd Half)</option>
-                                </select>
+                            <div style={{ width: '1px', height: '32px', background: '#e2e8f0' }}></div>
+
+                            {/* End Date Group */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>End Date</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                                        <Calendar size={14} className="text-gray-500" />
+                                        <select
+                                            value={endYear}
+                                            onChange={(e) => setEndYear(parseInt(e.target.value))}
+                                            className="bg-transparent border-none outline-none font-medium text-sm text-gray-800 cursor-pointer hover:text-green-600 transition-colors"
+                                        >
+                                            {availableYears.map(year => (
+                                                <option key={year} value={year}>{year}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                                        <select
+                                            value={endPeriod}
+                                            onChange={(e) => setEndPeriod(e.target.value)}
+                                            className="bg-transparent border-none outline-none font-medium text-sm text-gray-800 cursor-pointer hover:text-green-600 transition-colors"
+                                        >
+                                            <option value="jan-jun">Jan-Jun</option>
+                                            <option value="jul-dec">Jul-Dec</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

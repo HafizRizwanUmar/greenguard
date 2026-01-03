@@ -11,10 +11,10 @@ const path = require('path');
 // @access  Private (or Public for demo)
 router.post('/analyze', async (req, res) => {
     try {
-        const { coordinates, startDate, endDate } = req.body;
+        const { coordinates, range1, range2 } = req.body;
 
         // Prepare data for Python script
-        const inputData = JSON.stringify({ coordinates, startDate, endDate });
+        const inputData = JSON.stringify({ coordinates, range1, range2 });
 
         const scriptPath = path.join(__dirname, '../python/inference.py');
         const pythonProcess = spawn('python', [scriptPath, inputData]);

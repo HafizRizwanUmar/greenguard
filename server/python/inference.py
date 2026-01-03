@@ -183,10 +183,15 @@ def create_ideal_forest(width, height):
     arr = np.clip(arr + noise, 0, 255).astype(np.uint8)
     return Image.fromarray(arr, mode="RGBA")
 
-def fetch_real_satellite_image(coordinates, start_date=None, end_date=None, width=512, height=512):
-    # Fallback to existing logic if STAC not available or coordinates missing
+def fetch_single_satellite_image(coordinates, start_date, end_date, label="Image"):
+    """
+    Fetches a SINGLE best image for the given time range.
+    """
+    width, height = 512, 512
+    
+    # Fallback if STAC not available or coordinates missing
     if not STAC_AVAILABLE or not coordinates:
-        return fetch_esri_or_synthetic(coordinates, width, height)
+        return generate_synthetic_image(width, height, label)
 
     try:
         # 1. Parse Coordinates & BBox
@@ -200,7 +205,7 @@ def fetch_real_satellite_image(coordinates, start_date=None, end_date=None, widt
                 lons.append(p[0])
                 lats.append(p[1])
         
-        if not lats: return fetch_esri_or_synthetic([], width, height)
+        if not lats: return generate_synthetic_image(width, height, label)
 
         min_lat, max_lat = min(lats), max(lats)
         min_lon, max_lon = min(lons), max(lons)
@@ -208,8 +213,9 @@ def fetch_real_satellite_image(coordinates, start_date=None, end_date=None, widt
 
         # 2. Define Time Range
         if not start_date or not end_date:
+             # Default to last 30 days if no range
             end_date_obj = pd.Timestamp.now()
-            start_date_obj = end_date_obj - pd.DateOffset(months=12)
+            start_date_obj = end_date_obj - pd.DateOffset(days=30)
             time_range = f"{start_date_obj.strftime('%Y-%m-%d')}/{end_date_obj.strftime('%Y-%m-%d')}"
         else:
             time_range = f"{start_date}/{end_date}"
@@ -231,65 +237,41 @@ def fetch_real_satellite_image(coordinates, start_date=None, end_date=None, widt
         items = search.item_collection()
 
         if len(items) < 1:
-            return fetch_esri_or_synthetic(coordinates, width, height)
+            return fetch_esri_only(coordinates, width, height)
 
-        # 4. Select Items (T1 and T2)
-        item_t2 = items[0]
-        use_synthetic_t1 = False
-        item_t1 = None
-        
-        if len(items) > 1:
-            item_t1 = items[-1]
-        else:
-            use_synthetic_t1 = True
+        # 4. Select Best Item (First one = Low Clouds + Newest)
+        best_item = items[0]
 
         # 5. Load Data via odc-stac
-        ds_t2 = odc.stac.load(
-            [item_t2],
+        ds = odc.stac.load(
+            [best_item],
             bands=["B04", "B03", "B02", "B08"],
             bbox=bbox,
             resolution=10,
         )
         
-        if not use_synthetic_t1:
-            ds_t1 = odc.stac.load(
-                [item_t1],
-                bands=["B04", "B03", "B02", "B08"],
-                bbox=bbox,
-                resolution=10,
-            )
+        # 6. Convert to PIL Image
+        if 'time' in ds.dims: ds = ds.isel(time=0)
+        r = ds.B04.values.astype(np.float32)
+        g = ds.B03.values.astype(np.float32)
+        b = ds.B02.values.astype(np.float32)
+        n = ds.B08.values.astype(np.float32)
         
-        # 6. Convert to PIL Images
-        def process_ds(ds):
-            if 'time' in ds.dims: ds = ds.isel(time=0)
-            r = ds.B04.values.astype(np.float32)
-            g = ds.B03.values.astype(np.float32)
-            b = ds.B02.values.astype(np.float32)
-            n = ds.B08.values.astype(np.float32)
-            
-            stack = np.stack([r, g, b, n], axis=-1)
-            stack = np.clip(stack / 3000.0 * 255.0, 0, 255).astype(np.uint8)
-            img = Image.fromarray(stack, mode='RGBA')
-            img = img.resize((width, height))
-            return img
-
-        img_t2_pil = process_ds(ds_t2)
+        stack = np.stack([r, g, b, n], axis=-1)
+        stack = np.clip(stack / 3000.0 * 255.0, 0, 255).astype(np.uint8)
+        img = Image.fromarray(stack, mode='RGBA')
+        img = img.resize((width, height))
         
-        if use_synthetic_t1:
-            img_t1_pil = create_ideal_forest(width, height)
-        else:
-            img_t1_pil = process_ds(ds_t1)
-        
-        return img_t1_pil, img_t2_pil
+        return img
 
     except Exception as e:
-        # sys.stderr.write(f"STAC Fetch Error: {e}\n")
-        return fetch_esri_or_synthetic(coordinates, width, height)
+        # sys.stderr.write(f"STAC Fetch Error ({label}): {e}\n")
+        return fetch_esri_only(coordinates, width, height)
 
-def fetch_esri_or_synthetic(coordinates, width=512, height=512):
+def fetch_esri_only(coordinates, width=512, height=512):
+    """Fetches a single image from Esri as fallback."""
     try:
-        if not coordinates:
-            return generate_synthetic_satellite_images(width, height)
+        if not coordinates: return generate_synthetic_image(width, height, "Fallback")
             
         lats = []
         lons = []
@@ -301,7 +283,7 @@ def fetch_esri_or_synthetic(coordinates, width=512, height=512):
                 lons.append(p[0])
                 lats.append(p[1])
                 
-        if not lats: return generate_synthetic_satellite_images(width, height)
+        if not lats: return generate_synthetic_image(width, height, "Fallback")
 
         min_lat, max_lat = min(lats), max(lats)
         min_lon, max_lon = min(lons), max(lons)
@@ -317,30 +299,48 @@ def fetch_esri_or_synthetic(coordinates, width=512, height=512):
         
         if response.status_code == 200:
             img_real = Image.open(BytesIO(response.content)).convert("RGB")
-            
             # Add synthetic NIR channel (using Green as proxy)
             r, g, b = img_real.split()
             nir = g
             img_real_4ch = Image.merge("RGBA", (r, g, b, nir))
-            
-            img_t2 = img_real_4ch
-            
-            # Use Ideal Forest as T1 so model sees differences between "Perfect Forest" and "Current Reality"
-            img_t1 = create_ideal_forest(width, height)
-            
-            return img_t1, img_t2
+            return img_real_4ch
         else:
-            return generate_synthetic_satellite_images(width, height)
-    except Exception as e:
-        return generate_synthetic_satellite_images(width, height)
+            return generate_synthetic_image(width, height, "EsriFail")
+    except:
+        return generate_synthetic_image(width, height, "EsriError")
+        
+def generate_synthetic_image(width, height, label="Synthetic"):
+    """Generates a single synthetic image."""
+    arr = np.zeros((height, width, 4), dtype=np.uint8)
+    arr[:, :, 0:3] = [34, 139, 34]  # RGB Green
+    if label == "T2": # Brown patches for T2
+         # Add patches
+         n_patches = random.randint(3, 8)
+         for _ in range(n_patches):
+             cx, cy = random.randint(0, width), random.randint(0, height)
+             r = random.randint(20, 100)
+             y, x = np.ogrid[-cy:height-cy, -cx:width-cx]
+             mask = x*x + y*y <= r*r
+             arr[mask] = [139, 69, 19, 50] # Brown, Low NIR 
+    arr[:, :, 3] = 200 # NIR High
+    
+    # Add noise
+    noise = np.random.randint(-20, 20, (height, width, 4))
+    arr = np.clip(arr + noise, 0, 255).astype(np.uint8)
+    
+    return Image.fromarray(arr, mode="RGBA")
 
 def analyze_area(models, input_data):
-    # 1. Fetch Real Image (or generate synthetic if fetch fails)
+    # 1. Fetch Real Images for Start and End Periods
     coordinates = input_data.get("coordinates", [])
-    start_date = input_data.get("startDate")
-    end_date = input_data.get("endDate")
+    range1 = input_data.get("range1", {})
+    range2 = input_data.get("range2", {})
     
-    img_t1, img_t2 = fetch_real_satellite_image(coordinates, start_date, end_date)
+    # Fetch T1 (Start Period)
+    img_t1 = fetch_single_satellite_image(coordinates, range1.get("startDate"), range1.get("endDate"), "T1")
+    
+    # Fetch T2 (End Period)
+    img_t2 = fetch_single_satellite_image(coordinates, range2.get("startDate"), range2.get("endDate"), "T2")
     
     # 2. Run Inference (Ensemble)
     prediction_mask = run_ensemble_inference(models, img_t1, img_t2)
